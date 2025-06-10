@@ -8,6 +8,8 @@ let currentPage = 0;
 let pageSize = 100;
 let isConnected = false;
 let tableStats = {};
+let currentEditCell = null; // 当前正在编辑的单元格
+let editingCellValue = null; // 编辑前的单元格值
 
 // 图表实例全局变量
 let distributionChart = null;
@@ -60,6 +62,7 @@ const exportData = document.getElementById('export-data');
 const importData = document.getElementById('import-data');
 const loadingSpinner = document.getElementById('loading-spinner');
 const alertContainer = document.getElementById('alert-container');
+const enableEditButton = document.getElementById('enable-edit-mode'); // 编辑模式按钮
 
 // 字段名中英文映射
 const fieldTranslations = {
@@ -1179,62 +1182,73 @@ async function loadTableData() {
             });
             tableHeader.appendChild(headerRow);
             
-            // 创建表体行
-            data.forEach((row, rowIndex) => {
-                const tr = document.createElement('tr');
-                const isOdd = rowIndex % 2 === 0;
-                
-                columns.forEach((col, index) => {
-                    const value = row[col];
-                    const td = document.createElement('td');
+                            // 创建表体行
+                data.forEach((row, rowIndex) => {
+                    const tr = document.createElement('tr');
+                    tr.dataset.rowIndex = rowIndex; // 添加行索引，用于编辑功能
+                    const isOdd = rowIndex % 2 === 0;
                     
-                    // 使用与表头和colgroup相同的类名保持宽度一致
-                    if (columnClassMap[index]) {
-                        td.className = columnClassMap[index];
+                    columns.forEach((col, index) => {
+                        const value = row[col];
+                        const td = document.createElement('td');
+                        td.dataset.column = col; // 添加列名，用于编辑功能
                         
-                        // 与col元素和表头保持相同的宽度
-                        if (columnClassMap[index] === 'col-id' || columnClassMap[index] === 'col-key') {
-                            td.style.width = '100px';
-                            td.style.minWidth = '100px';
-                            td.style.maxWidth = '100px';
-                        } else if (columnClassMap[index] === 'col-date' || columnClassMap[index] === 'col-time') {
-                            td.style.width = '180px';
-                            td.style.minWidth = '180px';
-                            td.style.maxWidth = '180px';
-                        } else if (columnClassMap[index] === 'col-type' || columnClassMap[index] === 'col-status') {
-                            td.style.width = '120px';
-                            td.style.minWidth = '120px';
-                            td.style.maxWidth = '120px';
-                        } else if (columnClassMap[index] === 'col-boolean') {
-                            td.style.width = '100px';
-                            td.style.minWidth = '100px';
-                            td.style.maxWidth = '100px';
-                        } else if (columnClassMap[index] === 'col-description' || columnClassMap[index] === 'col-text' || columnClassMap[index] === 'col-comment') {
-                            td.style.width = '250px';
-                            td.style.minWidth = '250px';
-                            td.style.maxWidth = '250px';
-                        } else if (columnClassMap[index] === 'col-note') {
-                            td.style.width = '200px';
-                            td.style.minWidth = '200px';
-                            td.style.maxWidth = '200px';
-                        } else if (columnClassMap[index] === 'col-count' || columnClassMap[index] === 'col-price' || columnClassMap[index] === 'col-quantity') {
-                            td.style.width = '100px';
-                            td.style.minWidth = '100px';
-                            td.style.maxWidth = '100px';
-                        } else if (columnClassMap[index] === 'col-name' || columnClassMap[index] === 'col-username') {
-                            td.style.width = '150px';
-                            td.style.minWidth = '150px';
-                            td.style.maxWidth = '150px';
-                        } else if (columnClassMap[index] === 'col-icon') {
-                            td.style.width = '80px';
-                            td.style.minWidth = '80px';
-                            td.style.maxWidth = '80px';
-                        } else {
-                            td.style.width = '150px'; // 默认宽度
-                            td.style.minWidth = '150px';
-                            td.style.maxWidth = '150px';
+                        // 如果表格处于编辑模式，添加可编辑类
+                        if (dataTable.classList.contains('edit-mode')) {
+                            td.classList.add('editable-cell');
+                            td.addEventListener('click', cellClickHandler);
                         }
-                    }
+                        
+                        // 使用与表头和colgroup相同的类名保持宽度一致
+                        if (columnClassMap[index]) {
+                            td.className = columnClassMap[index];
+                            if (dataTable.classList.contains('edit-mode')) {
+                                td.classList.add('editable-cell');
+                            }
+                            
+                            // 与col元素和表头保持相同的宽度
+                            if (columnClassMap[index] === 'col-id' || columnClassMap[index] === 'col-key') {
+                                td.style.width = '100px';
+                                td.style.minWidth = '100px';
+                                td.style.maxWidth = '100px';
+                            } else if (columnClassMap[index] === 'col-date' || columnClassMap[index] === 'col-time') {
+                                td.style.width = '180px';
+                                td.style.minWidth = '180px';
+                                td.style.maxWidth = '180px';
+                            } else if (columnClassMap[index] === 'col-type' || columnClassMap[index] === 'col-status') {
+                                td.style.width = '120px';
+                                td.style.minWidth = '120px';
+                                td.style.maxWidth = '120px';
+                            } else if (columnClassMap[index] === 'col-boolean') {
+                                td.style.width = '100px';
+                                td.style.minWidth = '100px';
+                                td.style.maxWidth = '100px';
+                            } else if (columnClassMap[index] === 'col-description' || columnClassMap[index] === 'col-text' || columnClassMap[index] === 'col-comment') {
+                                td.style.width = '250px';
+                                td.style.minWidth = '250px';
+                                td.style.maxWidth = '250px';
+                            } else if (columnClassMap[index] === 'col-note') {
+                                td.style.width = '200px';
+                                td.style.minWidth = '200px';
+                                td.style.maxWidth = '200px';
+                            } else if (columnClassMap[index] === 'col-count' || columnClassMap[index] === 'col-price' || columnClassMap[index] === 'col-quantity') {
+                                td.style.width = '100px';
+                                td.style.minWidth = '100px';
+                                td.style.maxWidth = '100px';
+                            } else if (columnClassMap[index] === 'col-name' || columnClassMap[index] === 'col-username') {
+                                td.style.width = '150px';
+                                td.style.minWidth = '150px';
+                                td.style.maxWidth = '150px';
+                            } else if (columnClassMap[index] === 'col-icon') {
+                                td.style.width = '80px';
+                                td.style.minWidth = '80px';
+                                td.style.maxWidth = '80px';
+                            } else {
+                                td.style.width = '150px'; // 默认宽度
+                                td.style.minWidth = '150px';
+                                td.style.maxWidth = '150px';
+                            }
+                        }
                     
                     // 根据数据类型和内容优化显示，确保内容不会撑开单元格
                     if (value === null) {
@@ -1939,6 +1953,22 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         showAlert('数据导入功能尚未实现', 'info');
     });
+    
+    // 启用编辑模式按钮
+    if (enableEditButton) {
+        enableEditButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleEditMode();
+        });
+    }
+    
+    // 文档点击事件，用于处理点击其他区域时取消编辑
+    document.addEventListener('click', (e) => {
+        // 如果点击的不是编辑框内的元素，且存在正在编辑的单元格，则取消编辑
+        if (currentEditCell && !e.target.closest('.cell-editor') && !e.target.closest('.editable-cell')) {
+            cancelCellEdit();
+        }
+    });
 });
 
 /**
@@ -2060,4 +2090,272 @@ function exportQueryResultsToCSV() {
         console.error('导出查询结果错误:', error);
         showAlert('导出查询结果失败', 'error');
     }
-} 
+}
+
+/**
+ * 将文本转换为安全的HTML字符串
+ * @param {string} text - 要转换的文本
+ * @returns {string} - 安全的HTML字符串
+ */
+function escapeHtml(text) {
+    if (text === null || text === undefined) {
+        return '';
+    }
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * 进入单元格编辑模式
+ * @param {HTMLElement} cell - 要编辑的单元格
+ * @param {string} tableName - 表名
+ * @param {number} rowIndex - 行索引
+ * @param {string} columnName - 列名
+ * @param {*} value - 单元格当前值
+ */
+function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
+    // 如果已经在编辑其他单元格，先结束编辑
+    if (currentEditCell !== null) {
+        cancelCellEdit();
+    }
+    
+    // 保存当前编辑单元格信息
+    currentEditCell = {
+        cell: cell,
+        tableName: tableName,
+        rowIndex: rowIndex,
+        columnName: columnName,
+        originalHTML: cell.innerHTML
+    };
+    editingCellValue = value;
+    
+    // 创建编辑框
+    const editor = document.createElement('div');
+    editor.className = 'cell-editor';
+    
+    // 创建输入框
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'cell-edit-input';
+    input.value = value !== null ? value : '';
+    
+    // 创建按钮容器
+    const buttons = document.createElement('div');
+    buttons.className = 'edit-buttons';
+    
+    // 创建保存按钮
+    const saveButton = document.createElement('button');
+    saveButton.className = 'edit-save-btn';
+    saveButton.textContent = '保存';
+    saveButton.addEventListener('click', saveCellEdit);
+    
+    // 创建取消按钮
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'edit-cancel-btn';
+    cancelButton.textContent = '取消';
+    cancelButton.addEventListener('click', cancelCellEdit);
+    
+    // 组装DOM
+    buttons.appendChild(saveButton);
+    buttons.appendChild(cancelButton);
+    editor.appendChild(input);
+    editor.appendChild(buttons);
+    
+    // 替换单元格内容
+    cell.innerHTML = '';
+    cell.appendChild(editor);
+    
+    // 聚焦到输入框
+    input.focus();
+    
+    // 添加键盘事件监听
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            saveCellEdit();
+        } else if (e.key === 'Escape') {
+            cancelCellEdit();
+        }
+    });
+}
+
+/**
+ * 保存单元格编辑
+ */
+async function saveCellEdit() {
+    if (!currentEditCell) return;
+    
+    const input = currentEditCell.cell.querySelector('.cell-edit-input');
+    const newValue = input.value;
+    
+    try {
+        // 显示加载指示器
+        showLoading();
+        
+        // 获取主键信息以构建更新条件
+        const result = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/info`);
+        
+        if (!result.success) {
+            throw new Error(result.error || '获取表结构失败');
+        }
+        
+        // 查找主键
+        const primaryKeyColumn = result.data.find(col => col.Key === 'PRI');
+        
+        if (!primaryKeyColumn) {
+            throw new Error('无法更新：找不到主键');
+        }
+        
+        // 获取当前行的主键值
+        const row = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/row/${currentEditCell.rowIndex}`);
+        
+        if (!row.success || !row.data) {
+            throw new Error('获取行数据失败');
+        }
+        
+        const primaryKeyValue = row.data[primaryKeyColumn.Field];
+        
+        if (primaryKeyValue === undefined) {
+            throw new Error('无法获取主键值');
+        }
+        
+        // 构建更新请求
+        const updateData = {
+            table: currentEditCell.tableName,
+            column: currentEditCell.columnName,
+            value: newValue,
+            primaryKey: primaryKeyColumn.Field,
+            primaryKeyValue: primaryKeyValue
+        };
+        
+        // 发送更新请求
+        const updateResult = await apiRequest('/db_admin/api/update', 'POST', updateData);
+        
+        if (!updateResult.success) {
+            throw new Error(updateResult.error || '更新失败');
+        }
+        
+        // 更新成功，更新单元格显示
+        showAlert('数据已更新', 'success');
+        
+        // 使用与原单元格相同的显示逻辑，但更新值
+        // 这里简单处理，实际应该根据列类型格式化显示
+        currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
+        currentEditCell.cell.classList.add('updated-cell');
+        
+        // 重置编辑状态
+        currentEditCell = null;
+        editingCellValue = null;
+        
+    } catch (error) {
+        showAlert(`更新失败: ${error.message}`, 'error');
+        console.error('保存单元格编辑错误:', error);
+        
+        // 恢复原始内容
+        if (currentEditCell) {
+            currentEditCell.cell.innerHTML = currentEditCell.originalHTML;
+            currentEditCell = null;
+            editingCellValue = null;
+        }
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * 取消单元格编辑
+ */
+function cancelCellEdit() {
+    if (!currentEditCell) return;
+    
+    // 恢复原始内容
+    currentEditCell.cell.innerHTML = currentEditCell.originalHTML;
+    
+    // 重置编辑状态
+    currentEditCell = null;
+    editingCellValue = null;
+}
+
+/**
+ * 启用/禁用表格编辑模式
+ */
+function toggleEditMode() {
+    const isEditMode = dataTable.classList.contains('edit-mode');
+    
+    if (isEditMode) {
+        // 禁用编辑模式
+        dataTable.classList.remove('edit-mode');
+        if (enableEditButton) {
+            enableEditButton.textContent = '启用编辑';
+            enableEditButton.classList.remove('btn-danger');
+            enableEditButton.classList.add('btn-primary');
+        }
+        
+        // 如果有正在编辑的单元格，取消编辑
+        if (currentEditCell) {
+            cancelCellEdit();
+        }
+        
+        // 移除单元格点击事件
+        document.querySelectorAll('#table-body td').forEach(cell => {
+            cell.removeEventListener('click', cellClickHandler);
+            cell.classList.remove('editable-cell');
+        });
+        
+        showAlert('已退出编辑模式', 'info');
+    } else {
+        // 启用编辑模式
+        dataTable.classList.add('edit-mode');
+        if (enableEditButton) {
+            enableEditButton.textContent = '退出编辑';
+            enableEditButton.classList.remove('btn-primary');
+            enableEditButton.classList.add('btn-danger');
+        }
+        
+        // 添加单元格点击事件
+        document.querySelectorAll('#table-body td').forEach(cell => {
+            cell.classList.add('editable-cell');
+            cell.addEventListener('click', cellClickHandler);
+        });
+        
+        showAlert('已进入编辑模式，点击单元格可以编辑内容', 'success');
+    }
+}
+
+/**
+ * 单元格点击事件处理函数
+ * @param {Event} e - 点击事件
+ */
+function cellClickHandler(e) {
+    const cell = e.currentTarget;
+    const rowIndex = cell.parentNode.dataset.rowIndex;
+    const columnName = cell.dataset.column;
+    const tableName = currentTable;
+    
+    // 获取单元格原始值
+    let value = '';
+    
+    // 尝试从span.fixed-width-content中获取内容
+    const contentSpan = cell.querySelector('.fixed-width-content');
+    if (contentSpan) {
+        value = contentSpan.textContent;
+    } else {
+        value = cell.textContent;
+    }
+    
+    // 进入编辑模式
+    enterCellEditMode(cell, tableName, rowIndex, columnName, value);
+}
+
+/**
+ * 显示弹出提示
+ * @param {string} message - 提示信息
+ * @param {string} type - 提示类型
+ */
+function showPopup(message, type) {
+    // 在这里添加显示弹出提示的逻辑
+    console.log(`提示: ${message} (${type})`);
+}

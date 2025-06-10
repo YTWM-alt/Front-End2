@@ -92,6 +92,89 @@
     background-color: #E6EEFF;
 }
 
+/* 单元格悬停效果 */
+.table td {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.table td:hover {
+    box-shadow: 0 0 5px rgba(100, 149, 237, 0.5);
+    background-color: #F0F8FF !important;
+    cursor: pointer;
+    z-index: 5;
+}
+
+/* 可编辑单元格样式 */
+.editable-cell {
+    position: relative;
+}
+
+.editable-cell:hover::after {
+    content: '\270E';  /* 编辑图标 */
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    font-size: 10px;
+    color: #6495ED;
+    opacity: 0.7;
+}
+
+/* 单元格编辑模式 */
+.cell-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 10px 15px;
+    border: 2px solid #6495ED;
+    background-color: white;
+    box-sizing: border-box;
+    z-index: 100;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* 编辑框样式 */
+.cell-edit-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+/* 编辑按钮 */
+.edit-buttons {
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+    display: flex;
+    gap: 5px;
+    z-index: 101;
+}
+
+.edit-save-btn, .edit-cancel-btn {
+    padding: 3px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.edit-save-btn {
+    background-color: #6495ED;
+    color: white;
+}
+
+.edit-cancel-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+}
+
 /* 强制表头和数据列一一对应 */
 #data-table th, #data-table td {
     width: auto !important;
@@ -311,6 +394,21 @@
     padding: 10px;
     background-color: #f8f9fa;
     border-radius: 5px;
+}
+
+/* 编辑模式下的样式 */
+.table.edit-mode td:hover {
+    background-color: #E6F0FF !important;
+    cursor: pointer;
+}
+
+.updated-cell {
+    animation: cell-updated 2s ease;
+}
+
+@keyframes cell-updated {
+    0% { background-color: #90EE90; }
+    100% { background-color: inherit; }
 }
 
 /* 分页控件 */
