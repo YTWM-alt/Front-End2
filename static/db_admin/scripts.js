@@ -1003,65 +1003,177 @@ async function loadTableData() {
         tableHeader.innerHTML = '';
         tableBody.innerHTML = '';
         
-        // 添加表格布局，不设置内联样式
-        dataTable.classList.add('table-fixed');
+        // 首先移除旧的colgroup元素
+        const oldColgroups = dataTable.querySelectorAll('colgroup');
+        oldColgroups.forEach(cg => cg.remove());
+        
+        // 重置表格样式
+        dataTable.className = 'table table-fixed';
+        
+        // 设置表格样式以确保表头和内容列宽一致
+        dataTable.style.tableLayout = 'fixed';
+        dataTable.style.width = '100%';
         
         if (data.length > 0) {
             // 创建表头
             const headerRow = document.createElement('tr');
             const columns = Object.keys(data[0]);
             
-            // 创建colgroup元素以控制列宽
-            const colgroup = document.createElement('colgroup');
-            dataTable.appendChild(colgroup);
-            
-            // 为每一列创建col元素
-            columns.forEach(col => {
-                const colElement = document.createElement('col');
+                            // 创建colgroup元素以控制列宽
+                const colgroup = document.createElement('colgroup');
+                dataTable.appendChild(colgroup);
                 
-                // 根据列类型添加CSS类
-                if (col === 'id' || col.endsWith('_id')) {
-                    colElement.classList.add('col-id');
-                } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
-                    colElement.classList.add('col-date');
-                } else if (col.includes('type')) {
-                    colElement.classList.add('col-type');
-                } else if (col.includes('status') || col.includes('state')) {
-                    colElement.classList.add('col-status');
-                } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
-                    colElement.classList.add('col-boolean');
-                } else if (col.includes('description') || col.includes('desc')) {
-                    colElement.classList.add('col-description');
-                } else if (col.includes('content') || col.includes('text')) {
-                    colElement.classList.add('col-text');
-                } else if (col.includes('comment')) {
-                    colElement.classList.add('col-comment');
-                } else if (col.includes('note')) {
-                    colElement.classList.add('col-note');
-                } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
-                    colElement.classList.add('col-count');
-                } else if (col.includes('price') || col.includes('cost')) {
-                    colElement.classList.add('col-price');
-                } else if (col.includes('quantity') || col.includes('qty')) {
-                    colElement.classList.add('col-quantity');
-                } else if (col.includes('name') || col.includes('title')) {
-                    colElement.classList.add('col-name');
-                } else if (col.includes('username') || col.includes('user_name')) {
-                    colElement.classList.add('col-username');
-                } else if (col.includes('icon') || col.includes('symbol')) {
-                    colElement.classList.add('col-icon');
-                }
+                // 创建一个用于存储列类名的映射
+                const columnClassMap = {};
                 
-                colgroup.appendChild(colElement);
-            });
+                // 为每列分配适当的类名
+                columns.forEach((col, index) => {
+                    const colElement = document.createElement('col');
+                    let columnClass = '';
+                    
+                    // 根据列类型添加CSS类
+                    if (col === 'id' || col.endsWith('_id')) {
+                        columnClass = 'col-id';
+                    } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
+                        columnClass = 'col-date';
+                    } else if (col.includes('type')) {
+                        columnClass = 'col-type';
+                    } else if (col.includes('status') || col.includes('state')) {
+                        columnClass = 'col-status';
+                    } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
+                        columnClass = 'col-boolean';
+                    } else if (col.includes('description') || col.includes('desc')) {
+                        columnClass = 'col-description';
+                    } else if (col.includes('content') || col.includes('text')) {
+                        columnClass = 'col-text';
+                    } else if (col.includes('comment')) {
+                        columnClass = 'col-comment';
+                    } else if (col.includes('note')) {
+                        columnClass = 'col-note';
+                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
+                        columnClass = 'col-count';
+                    } else if (col.includes('price') || col.includes('cost')) {
+                        columnClass = 'col-price';
+                    } else if (col.includes('quantity') || col.includes('qty')) {
+                        columnClass = 'col-quantity';
+                    } else if (col.includes('name') || col.includes('title')) {
+                        columnClass = 'col-name';
+                    } else if (col.includes('username') || col.includes('user_name')) {
+                        columnClass = 'col-username';
+                    } else if (col.includes('icon') || col.includes('symbol')) {
+                        columnClass = 'col-icon';
+                    } else {
+                        // 默认列类型
+                        columnClass = 'col-default';
+                    }
+                    
+                    // 保存列索引和类名的映射关系
+                    columnClassMap[index] = columnClass;
+                    
+                    // 设置固定宽度的col元素，根据类型分配固定宽度
+                    colElement.className = columnClass;
+                    
+                    // 明确设置列宽，确保表头和内容一致
+                    if (columnClass === 'col-id' || columnClass === 'col-key') {
+                        colElement.style.width = '100px';
+                        colElement.style.minWidth = '100px';
+                        colElement.style.maxWidth = '100px';
+                    } else if (columnClass === 'col-date' || columnClass === 'col-time') {
+                        colElement.style.width = '180px';
+                        colElement.style.minWidth = '180px';
+                        colElement.style.maxWidth = '180px';
+                    } else if (columnClass === 'col-type' || columnClass === 'col-status') {
+                        colElement.style.width = '120px';
+                        colElement.style.minWidth = '120px';
+                        colElement.style.maxWidth = '120px';
+                    } else if (columnClass === 'col-boolean') {
+                        colElement.style.width = '100px';
+                        colElement.style.minWidth = '100px';
+                        colElement.style.maxWidth = '100px';
+                    } else if (columnClass === 'col-description' || columnClass === 'col-text' || columnClass === 'col-comment') {
+                        colElement.style.width = '250px';
+                        colElement.style.minWidth = '250px';
+                        colElement.style.maxWidth = '250px';
+                    } else if (columnClass === 'col-note') {
+                        colElement.style.width = '200px';
+                        colElement.style.minWidth = '200px';
+                        colElement.style.maxWidth = '200px';
+                    } else if (columnClass === 'col-count' || columnClass === 'col-price' || columnClass === 'col-quantity') {
+                        colElement.style.width = '100px';
+                        colElement.style.minWidth = '100px';
+                        colElement.style.maxWidth = '100px';
+                    } else if (columnClass === 'col-name' || columnClass === 'col-username') {
+                        colElement.style.width = '150px';
+                        colElement.style.minWidth = '150px';
+                        colElement.style.maxWidth = '150px';
+                    } else if (columnClass === 'col-icon') {
+                        colElement.style.width = '80px';
+                        colElement.style.minWidth = '80px';
+                        colElement.style.maxWidth = '80px';
+                    } else {
+                        colElement.style.width = '150px'; // 默认宽度
+                        colElement.style.minWidth = '150px';
+                        colElement.style.maxWidth = '150px';
+                    }
+                    
+                    colgroup.appendChild(colElement);
+                });
             
             // 添加表头单元格
-            columns.forEach(col => {
+            columns.forEach((col, index) => {
                 const th = document.createElement('th');
                 // 翻译字段名
                 const displayName = translateField(col);
                 th.textContent = displayName;
                 th.title = `字段名: ${col}`;
+                
+                // 使用与colgroup相同的类名保持宽度一致
+                if (columnClassMap[index]) {
+                    th.className = columnClassMap[index];
+                    
+                    // 与col元素保持相同的宽度
+                    if (columnClassMap[index] === 'col-id' || columnClassMap[index] === 'col-key') {
+                        th.style.width = '100px';
+                        th.style.minWidth = '100px';
+                        th.style.maxWidth = '100px';
+                    } else if (columnClassMap[index] === 'col-date' || columnClassMap[index] === 'col-time') {
+                        th.style.width = '180px';
+                        th.style.minWidth = '180px';
+                        th.style.maxWidth = '180px';
+                    } else if (columnClassMap[index] === 'col-type' || columnClassMap[index] === 'col-status') {
+                        th.style.width = '120px';
+                        th.style.minWidth = '120px';
+                        th.style.maxWidth = '120px';
+                    } else if (columnClassMap[index] === 'col-boolean') {
+                        th.style.width = '100px';
+                        th.style.minWidth = '100px';
+                        th.style.maxWidth = '100px';
+                    } else if (columnClassMap[index] === 'col-description' || columnClassMap[index] === 'col-text' || columnClassMap[index] === 'col-comment') {
+                        th.style.width = '250px';
+                        th.style.minWidth = '250px';
+                        th.style.maxWidth = '250px';
+                    } else if (columnClassMap[index] === 'col-note') {
+                        th.style.width = '200px';
+                        th.style.minWidth = '200px';
+                        th.style.maxWidth = '200px';
+                    } else if (columnClassMap[index] === 'col-count' || columnClassMap[index] === 'col-price' || columnClassMap[index] === 'col-quantity') {
+                        th.style.width = '100px';
+                        th.style.minWidth = '100px';
+                        th.style.maxWidth = '100px';
+                    } else if (columnClassMap[index] === 'col-name' || columnClassMap[index] === 'col-username') {
+                        th.style.width = '150px';
+                        th.style.minWidth = '150px';
+                        th.style.maxWidth = '150px';
+                    } else if (columnClassMap[index] === 'col-icon') {
+                        th.style.width = '80px';
+                        th.style.minWidth = '80px';
+                        th.style.maxWidth = '80px';
+                    } else {
+                        th.style.width = '150px'; // 默认宽度
+                        th.style.minWidth = '150px';
+                        th.style.maxWidth = '150px';
+                    }
+                }
                 
                 headerRow.appendChild(th);
             });
@@ -1072,76 +1184,91 @@ async function loadTableData() {
                 const tr = document.createElement('tr');
                 const isOdd = rowIndex % 2 === 0;
                 
-                columns.forEach(col => {
+                columns.forEach((col, index) => {
                     const value = row[col];
                     const td = document.createElement('td');
                     
-                    // 添加与表头相同的CSS类
-                    if (col === 'id' || col.endsWith('_id')) {
-                        td.classList.add('col-id');
-                    } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
-                        td.classList.add('col-date');
-                    } else if (col.includes('type')) {
-                        td.classList.add('col-type');
-                    } else if (col.includes('status') || col.includes('state')) {
-                        td.classList.add('col-status');
-                    } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
-                        td.classList.add('col-boolean');
-                    } else if (col.includes('description') || col.includes('desc')) {
-                        td.classList.add('col-description');
-                    } else if (col.includes('content') || col.includes('text')) {
-                        td.classList.add('col-text');
-                    } else if (col.includes('comment')) {
-                        td.classList.add('col-comment');
-                    } else if (col.includes('note')) {
-                        td.classList.add('col-note');
-                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
-                        td.classList.add('col-count');
-                    } else if (col.includes('price') || col.includes('cost')) {
-                        td.classList.add('col-price');
-                    } else if (col.includes('quantity') || col.includes('qty')) {
-                        td.classList.add('col-quantity');
-                    } else if (col.includes('name') || col.includes('title')) {
-                        td.classList.add('col-name');
-                    } else if (col.includes('username') || col.includes('user_name')) {
-                        td.classList.add('col-username');
-                    } else if (col.includes('icon') || col.includes('symbol')) {
-                        td.classList.add('col-icon');
+                    // 使用与表头和colgroup相同的类名保持宽度一致
+                    if (columnClassMap[index]) {
+                        td.className = columnClassMap[index];
+                        
+                        // 与col元素和表头保持相同的宽度
+                        if (columnClassMap[index] === 'col-id' || columnClassMap[index] === 'col-key') {
+                            td.style.width = '100px';
+                            td.style.minWidth = '100px';
+                            td.style.maxWidth = '100px';
+                        } else if (columnClassMap[index] === 'col-date' || columnClassMap[index] === 'col-time') {
+                            td.style.width = '180px';
+                            td.style.minWidth = '180px';
+                            td.style.maxWidth = '180px';
+                        } else if (columnClassMap[index] === 'col-type' || columnClassMap[index] === 'col-status') {
+                            td.style.width = '120px';
+                            td.style.minWidth = '120px';
+                            td.style.maxWidth = '120px';
+                        } else if (columnClassMap[index] === 'col-boolean') {
+                            td.style.width = '100px';
+                            td.style.minWidth = '100px';
+                            td.style.maxWidth = '100px';
+                        } else if (columnClassMap[index] === 'col-description' || columnClassMap[index] === 'col-text' || columnClassMap[index] === 'col-comment') {
+                            td.style.width = '250px';
+                            td.style.minWidth = '250px';
+                            td.style.maxWidth = '250px';
+                        } else if (columnClassMap[index] === 'col-note') {
+                            td.style.width = '200px';
+                            td.style.minWidth = '200px';
+                            td.style.maxWidth = '200px';
+                        } else if (columnClassMap[index] === 'col-count' || columnClassMap[index] === 'col-price' || columnClassMap[index] === 'col-quantity') {
+                            td.style.width = '100px';
+                            td.style.minWidth = '100px';
+                            td.style.maxWidth = '100px';
+                        } else if (columnClassMap[index] === 'col-name' || columnClassMap[index] === 'col-username') {
+                            td.style.width = '150px';
+                            td.style.minWidth = '150px';
+                            td.style.maxWidth = '150px';
+                        } else if (columnClassMap[index] === 'col-icon') {
+                            td.style.width = '80px';
+                            td.style.minWidth = '80px';
+                            td.style.maxWidth = '80px';
+                        } else {
+                            td.style.width = '150px'; // 默认宽度
+                            td.style.minWidth = '150px';
+                            td.style.maxWidth = '150px';
+                        }
                     }
                     
-                    // 根据数据类型和内容优化显示
+                    // 根据数据类型和内容优化显示，确保内容不会撑开单元格
                     if (value === null) {
-                        td.innerHTML = '<span class="null-value">空值</span>';
+                        td.innerHTML = '<span class="null-value fixed-width-content">空值</span>';
                     } else if (typeof value === 'object') {
                         try {
                             const jsonStr = JSON.stringify(value, null, 2);
-                            td.innerHTML = `<span class="text-secondary truncated-text" 
+                            td.innerHTML = `<span class="text-secondary truncated-text fixed-width-content" 
                                 title="${jsonStr.replace(/"/g, '&quot;')}">${jsonStr.substring(0, 50)}${jsonStr.length > 50 ? '...' : ''}</span>`;
                         } catch (e) {
-                            td.innerHTML = '<span class="badge bg-secondary">复杂对象</span>';
+                            td.innerHTML = '<span class="badge bg-secondary fixed-width-content">复杂对象</span>';
                         }
                     } else if (typeof value === 'boolean') {
                         td.innerHTML = value ? 
-                            '<span class="badge bg-success">是</span>' : 
-                            '<span class="badge bg-danger">否</span>';
+                            '<span class="badge bg-success fixed-width-content">是</span>' : 
+                            '<span class="badge bg-danger fixed-width-content">否</span>';
                     } else if (col.includes('time') || col.includes('date') || col.includes('created') || col.includes('updated')) {
                         // 日期时间格式化
                         try {
                             const date = new Date(value);
                             if (!isNaN(date)) {
-                                td.innerHTML = `<span class="text-muted" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
+                                td.innerHTML = `<span class="text-muted fixed-width-content" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
                             } else {
-                                td.innerHTML = `<span>${value}</span>`;
+                                td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                             }
                         } catch (e) {
-                            td.innerHTML = `<span>${value}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                         }
                     } else if (col === 'id' || col.endsWith('_id')) {
                         // ID列格式化
-                        td.innerHTML = `<span class="badge" style="background-color: #6495ED;">${value}</span>`;
+                        td.innerHTML = `<span class="badge fixed-width-content" style="background-color: #6495ED;">${value}</span>`;
                     } else if (col.includes('email')) {
                         // 邮箱格式化
-                        td.innerHTML = `<a href="mailto:${value}" class="text-primary">${value}</a>`;
+                        td.innerHTML = `<a href="mailto:${value}" class="text-primary fixed-width-content">${value}</a>`;
                     } else if (col.includes('status')) {
                         // 状态格式化
                         let statusClass = 'bg-secondary';
@@ -1168,34 +1295,34 @@ async function loadTableData() {
                             statusClass = 'bg-warning';
                         }
                         
-                        td.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+                        td.innerHTML = `<span class="badge ${statusClass} fixed-width-content">${statusText}</span>`;
                     } else if (col.includes('url') || col.includes('link') || col.includes('website')) {
                         // URL格式化
                         if (String(value).startsWith('http')) {
-                            td.innerHTML = `<a href="${value}" target="_blank" class="text-primary">${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</a>`;
+                            td.innerHTML = `<a href="${value}" target="_blank" class="text-primary fixed-width-content">${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</a>`;
                         } else {
-                            td.innerHTML = `<span>${value}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                         }
                     } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
                         // 数字格式化
                         if (!isNaN(value)) {
-                            td.innerHTML = `<span style="font-weight: bold;">${Number(value).toLocaleString()}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content" style="font-weight: bold;">${Number(value).toLocaleString()}</span>`;
                         } else {
-                            td.innerHTML = `<span>${value}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                         }
                     } else if (col.includes('price') || col.includes('cost')) {
                         // 价格格式化
                         if (!isNaN(value)) {
-                            td.innerHTML = `<span style="font-weight: bold;">¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content" style="font-weight: bold;">¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
                         } else {
-                            td.innerHTML = `<span>${value}</span>`;
+                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                         }
                     } else if (String(value).length > 100) {
                         // 长文本截断显示
-                        td.innerHTML = `<span class="truncated-text" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
+                        td.innerHTML = `<span class="truncated-text fixed-width-content" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
                     } else {
                         // 默认显示
-                        td.innerHTML = `<span>${value}</span>`;
+                        td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
                     }
                     
                     tr.appendChild(td);
@@ -1314,9 +1441,15 @@ async function loadTableStructure() {
         const columns = result.data;
         structureBody.innerHTML = '';
         
-        // 添加表格类，不设置内联样式
+        // 获取表格元素
         const structureTable = document.getElementById('structure-table');
-        structureTable.classList.add('table-fixed');
+        
+        // 清除旧的colgroup元素
+        const oldColgroups = structureTable.querySelectorAll('colgroup');
+        oldColgroups.forEach(cg => cg.remove());
+        
+        // 重置表格样式
+        structureTable.className = 'table table-fixed';
         
         // 创建colgroup元素
         const colgroup = document.createElement('colgroup');
@@ -1556,59 +1689,52 @@ async function executeCustomQuery(query) {
                 
                 tableHtml += `\n                            </tbody>\n                        </table>\n                    </div>\n                `;
                 
+                // 更改查询结果表格的HTML，直接在表格中添加colgroup
+                let colgroupHtml = '<colgroup>';
+                columns.forEach(col => {
+                    let colClass = '';
+                    if (col === 'id' || col.endsWith('_id')) {
+                        colClass = 'col-id';
+                    } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
+                        colClass = 'col-date';
+                    } else if (col.includes('type')) {
+                        colClass = 'col-type';
+                    } else if (col.includes('status') || col.includes('state')) {
+                        colClass = 'col-status';
+                    } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
+                        colClass = 'col-boolean';
+                    } else if (col.includes('description') || col.includes('desc')) {
+                        colClass = 'col-description';
+                    } else if (col.includes('content') || col.includes('text')) {
+                        colClass = 'col-text';
+                    } else if (col.includes('comment')) {
+                        colClass = 'col-comment';
+                    } else if (col.includes('note')) {
+                        colClass = 'col-note';
+                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
+                        colClass = 'col-count';
+                    } else if (col.includes('price') || col.includes('cost')) {
+                        colClass = 'col-price';
+                    } else if (col.includes('quantity') || col.includes('qty')) {
+                        colClass = 'col-quantity';
+                    } else if (col.includes('name') || col.includes('title')) {
+                        colClass = 'col-name';
+                    } else if (col.includes('username') || col.includes('user_name')) {
+                        colClass = 'col-username';
+                    } else if (col.includes('icon') || col.includes('symbol')) {
+                        colClass = 'col-icon';
+                    }
+                    
+                    colgroupHtml += `<col class="${colClass}">`;
+                });
+                colgroupHtml += '</colgroup>';
+                
+                            // 修改查询结果表格的HTML，确保表格使用固定布局
+            tableHtml = tableHtml.replace('<table class="table table-hover mb-0" style="table-layout: fixed; border-collapse: collapse;">', 
+                '<table class="table table-hover table-fixed mb-0" style="table-layout: fixed !important; border-collapse: collapse;">' + colgroupHtml);
+                
                 // 设置表格为固定布局
                 queryResultsContainer.innerHTML = tableHtml;
-                const resultTable = queryResultsContainer.querySelector('table');
-                if (resultTable) {
-                    resultTable.classList.add('table-fixed');
-                    
-                    // 创建colgroup元素
-                    const colgroup = document.createElement('colgroup');
-                    const columnsCount = columns.length;
-                    
-                    // 为每一列创建col元素
-                    columns.forEach(col => {
-                        const colElement = document.createElement('col');
-                        
-                        // 根据列类型添加CSS类
-                        if (col === 'id' || col.endsWith('_id')) {
-                            colElement.classList.add('col-id');
-                        } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
-                            colElement.classList.add('col-date');
-                        } else if (col.includes('type')) {
-                            colElement.classList.add('col-type');
-                        } else if (col.includes('status') || col.includes('state')) {
-                            colElement.classList.add('col-status');
-                        } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
-                            colElement.classList.add('col-boolean');
-                        } else if (col.includes('description') || col.includes('desc')) {
-                            colElement.classList.add('col-description');
-                        } else if (col.includes('content') || col.includes('text')) {
-                            colElement.classList.add('col-text');
-                        } else if (col.includes('comment')) {
-                            colElement.classList.add('col-comment');
-                        } else if (col.includes('note')) {
-                            colElement.classList.add('col-note');
-                        } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
-                            colElement.classList.add('col-count');
-                        } else if (col.includes('price') || col.includes('cost')) {
-                            colElement.classList.add('col-price');
-                        } else if (col.includes('quantity') || col.includes('qty')) {
-                            colElement.classList.add('col-quantity');
-                        } else if (col.includes('name') || col.includes('title')) {
-                            colElement.classList.add('col-name');
-                        } else if (col.includes('username') || col.includes('user_name')) {
-                            colElement.classList.add('col-username');
-                        } else if (col.includes('icon') || col.includes('symbol')) {
-                            colElement.classList.add('col-icon');
-                        }
-                        
-                        colgroup.appendChild(colElement);
-                    });
-                    
-                    // 将colgroup插入到表格最前面
-                    resultTable.insertBefore(colgroup, resultTable.firstChild);
-                }
                 
                 queryRowCount.textContent = data.length;
             } else {
