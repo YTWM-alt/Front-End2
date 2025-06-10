@@ -69,6 +69,7 @@ class DatabaseManager:
                 cls._instance.config = cls._instance._load_config()
                 cls._instance.query_queue = queue.Queue()
                 cls._instance.result_queue = queue.Queue()
+                cls._instance.worker_thread = None  # 修改：保存线程引用
                 cls._instance._start_worker()
             return cls._instance
     
@@ -125,6 +126,14 @@ class DatabaseManager:
     def disconnect(self):
         """断开数据库连接"""
         try:
+            # 停止工作线程
+            if self.worker_thread and self.worker_thread.is_alive():
+                try:
+                    self.query_queue.put((None, None, None, None))  # 终止信号
+                    self.worker_thread.join(timeout=2)  # 等待线程结束
+                except:
+                    pass
+                    
             if self.connection and self.connection.is_connected():
                 self.cursor.close()
                 self.connection.close()
@@ -207,19 +216,47 @@ class DatabaseManager:
         def worker():
             while True:
                 try:
-                    query, params, query_type, query_id = self.query_queue.get()
+                    query, params, query_type, query_id = self.query_queue.get(timeout=60)  # 添加超时
+                    if query is None:  # 终止信号
+                        break
+                        
+                    # 确保连接是有效的
+                    if not self.connection or not self.connection.is_connected():
+                        self.connect()
+                        
                     if query_type == 'query':
                         result = self.execute_query(query, params)
                     else:
                         result = self.execute_update(query, params)
                     self.result_queue.put((query_id, result))
+                except queue.Empty:
+                    # 队列超时，继续循环
+                    continue
                 except Exception as e:
                     logger.error(f"查询工作线程出错: {e}")
+                    # 尝试放入错误结果
+                    try:
+                        self.result_queue.put((query_id, (False, f"执行错误: {str(e)}")))
+                    except:
+                        pass
                 finally:
-                    self.query_queue.task_done()
+                    try:
+                        self.query_queue.task_done()
+                    except:
+                        pass
         
-        thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
+        # 确保不会有多个线程
+        if self.worker_thread and self.worker_thread.is_alive():
+            # 发送终止信号
+            try:
+                self.query_queue.put((None, None, None, None))
+                self.worker_thread.join(timeout=2)  # 等待线程结束
+            except:
+                pass
+                
+        # 创建新线程
+        self.worker_thread = threading.Thread(target=worker, daemon=True)
+        self.worker_thread.start()
     
     def async_execute(self, query, params=None, query_type='query'):
         """异步执行SQL"""
