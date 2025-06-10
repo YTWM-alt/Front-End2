@@ -62,17 +62,31 @@ const loadingSpinner = document.getElementById('loading-spinner');
 const alertContainer = document.getElementById('alert-container');
 
 /**
- * 显示加载中动画
+ * 显示加载动画
+ * @param {string} type - 加载类型 ('table' 或 'structure')
  */
-function showLoading() {
-    loadingSpinner.style.display = 'block';
+function showLoading(type = 'general') {
+    if (type === 'table') {
+        document.getElementById('table-loading').style.display = 'flex';
+    } else if (type === 'structure') {
+        document.getElementById('structure-loading').style.display = 'flex';
+    } else {
+        document.querySelector('.loading-spinner').style.display = 'block';
+    }
 }
 
 /**
- * 隐藏加载中动画
+ * 隐藏加载动画
+ * @param {string} type - 加载类型 ('table' 或 'structure')
  */
-function hideLoading() {
-    loadingSpinner.style.display = 'none';
+function hideLoading(type = 'general') {
+    if (type === 'table') {
+        document.getElementById('table-loading').style.display = 'none';
+    } else if (type === 'structure') {
+        document.getElementById('structure-loading').style.display = 'none';
+    } else {
+        document.querySelector('.loading-spinner').style.display = 'none';
+    }
 }
 
 /**
@@ -653,7 +667,7 @@ async function loadTableData() {
     
     try {
         console.log(`加载表数据: ${currentTable}, 页码: ${currentPage}, 每页: ${pageSize}`);
-        showLoading();
+        showLoading('table');
         
         const result = await apiRequest(`/db_admin/api/table/${currentTable}/data?limit=${pageSize}&offset=${currentPage * pageSize}`);
         
@@ -671,9 +685,51 @@ async function loadTableData() {
         if (data.length > 0) {
             // 创建表头
             const headerRow = document.createElement('tr');
-            Object.keys(data[0]).forEach(key => {
+            const columns = Object.keys(data[0]);
+            
+            columns.forEach(key => {
                 const th = document.createElement('th');
-                th.textContent = key;
+                // 优化字段名显示，将下划线替换为空格，首字母大写
+                const displayName = key
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, l => l.toUpperCase());
+                th.textContent = displayName;
+                // 添加字段名提示
+                th.title = `字段名: ${key}`;
+                
+                // 根据列名添加特定的CSS类
+                if (key === 'id' || key.endsWith('_id')) {
+                    th.classList.add('col-id');
+                } else if (key.includes('date') || key.includes('time') || key.includes('created') || key.includes('updated')) {
+                    th.classList.add('col-date');
+                } else if (key.includes('type')) {
+                    th.classList.add('col-type');
+                } else if (key.includes('status') || key.includes('state')) {
+                    th.classList.add('col-status');
+                } else if (key.includes('is_') || key === 'active' || key === 'enabled') {
+                    th.classList.add('col-boolean');
+                } else if (key.includes('description') || key.includes('desc')) {
+                    th.classList.add('col-description');
+                } else if (key.includes('content') || key.includes('text')) {
+                    th.classList.add('col-text');
+                } else if (key.includes('comment')) {
+                    th.classList.add('col-comment');
+                } else if (key.includes('note')) {
+                    th.classList.add('col-note');
+                } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
+                    th.classList.add('col-count');
+                } else if (key.includes('price') || key.includes('cost')) {
+                    th.classList.add('col-price');
+                } else if (key.includes('quantity') || key.includes('qty')) {
+                    th.classList.add('col-quantity');
+                } else if (key.includes('name') || key.includes('title')) {
+                    th.classList.add('col-name');
+                } else if (key.includes('username') || key.includes('user_name')) {
+                    th.classList.add('col-username');
+                } else if (key.includes('icon') || key.includes('symbol')) {
+                    th.classList.add('col-icon');
+                }
+                
                 headerRow.appendChild(th);
             });
             tableHeader.appendChild(headerRow);
@@ -682,51 +738,210 @@ async function loadTableData() {
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                Object.values(row).forEach(value => {
+                columns.forEach(key => {
+                    const value = row[key];
                     const td = document.createElement('td');
-                    // 处理不同类型的值
+                    
+                    // 根据列名添加相同的CSS类，确保与表头对齐
+                    if (key === 'id' || key.endsWith('_id')) {
+                        td.classList.add('col-id');
+                    } else if (key.includes('date') || key.includes('time') || key.includes('created') || key.includes('updated')) {
+                        td.classList.add('col-date');
+                    } else if (key.includes('type')) {
+                        td.classList.add('col-type');
+                    } else if (key.includes('status') || key.includes('state')) {
+                        td.classList.add('col-status');
+                    } else if (key.includes('is_') || key === 'active' || key === 'enabled') {
+                        td.classList.add('col-boolean');
+                    } else if (key.includes('description') || key.includes('desc')) {
+                        td.classList.add('col-description');
+                    } else if (key.includes('content') || key.includes('text')) {
+                        td.classList.add('col-text');
+                    } else if (key.includes('comment')) {
+                        td.classList.add('col-comment');
+                    } else if (key.includes('note')) {
+                        td.classList.add('col-note');
+                    } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
+                        td.classList.add('col-count');
+                    } else if (key.includes('price') || key.includes('cost')) {
+                        td.classList.add('col-price');
+                    } else if (key.includes('quantity') || key.includes('qty')) {
+                        td.classList.add('col-quantity');
+                    } else if (key.includes('name') || key.includes('title')) {
+                        td.classList.add('col-name');
+                    } else if (key.includes('username') || key.includes('user_name')) {
+                        td.classList.add('col-username');
+                    } else if (key.includes('icon') || key.includes('symbol')) {
+                        td.classList.add('col-icon');
+                    }
+                    
+                    // 根据数据类型和内容优化显示
                     if (value === null) {
-                        td.innerHTML = '<span class="text-muted">NULL</span>';
+                        td.innerHTML = '<span class="null-value">NULL</span>';
                     } else if (typeof value === 'object') {
                         try {
-                            td.textContent = JSON.stringify(value);
+                            const jsonStr = JSON.stringify(value, null, 2);
+                            td.innerHTML = `<span class="text-secondary truncated-text" 
+                                title="${jsonStr.replace(/"/g, '&quot;')}">${jsonStr.substring(0, 50)}${jsonStr.length > 50 ? '...' : ''}</span>`;
                         } catch (e) {
-                            td.textContent = '[复杂对象]';
+                            td.innerHTML = '<span class="badge bg-secondary">复杂对象</span>';
                         }
                     } else if (typeof value === 'boolean') {
-                        td.textContent = value ? '是' : '否';
-                    } else if (value.toString().length > 100) {
-                        td.innerHTML = `<span title="${value.toString().replace(/"/g, '&quot;')}">${value.toString().substring(0, 100)}...</span>`;
+                        td.innerHTML = value ? 
+                            '<span class="badge bg-success">是</span>' : 
+                            '<span class="badge bg-danger">否</span>';
+                    } else if (key.includes('time') || key.includes('date') || key.includes('created') || key.includes('updated')) {
+                        // 日期时间格式化
+                        try {
+                            const date = new Date(value);
+                            if (!isNaN(date)) {
+                                td.innerHTML = `<span class="text-muted" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
+                            } else {
+                                td.textContent = value;
+                            }
+                        } catch (e) {
+                            td.textContent = value;
+                        }
+                    } else if (key === 'id' || key.endsWith('_id')) {
+                        // ID列格式化
+                        td.innerHTML = `<span class="badge" style="background-color: var(--primary-color);">${value}</span>`;
+                    } else if (key.includes('email')) {
+                        // 邮箱格式化
+                        td.innerHTML = `<a href="mailto:${value}" class="text-primary">${value}</a>`;
+                    } else if (key.includes('status')) {
+                        // 状态格式化
+                        let statusClass = 'bg-secondary';
+                        if (/active|enabled|success|1|true/i.test(String(value))) {
+                            statusClass = 'bg-success';
+                        } else if (/inactive|disabled|failed|0|false/i.test(String(value))) {
+                            statusClass = 'bg-danger';
+                        } else if (/pending|waiting/i.test(String(value))) {
+                            statusClass = 'bg-warning';
+                        }
+                        td.innerHTML = `<span class="badge ${statusClass}">${value}</span>`;
+                    } else if (key.includes('url') || key.includes('link') || key.includes('website')) {
+                        // URL格式化
+                        if (String(value).startsWith('http')) {
+                            td.innerHTML = `<a href="${value}" target="_blank" class="text-primary">${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</a>`;
+                        } else {
+                            td.textContent = value;
+                        }
+                    } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
+                        // 数字格式化
+                        if (!isNaN(value)) {
+                            td.textContent = Number(value).toLocaleString();
+                            td.style.fontWeight = 'bold';
+                        } else {
+                            td.textContent = value;
+                        }
+                    } else if (key.includes('price') || key.includes('cost')) {
+                        // 价格格式化
+                        if (!isNaN(value)) {
+                            td.textContent = `¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                            td.style.fontWeight = 'bold';
+                        } else {
+                            td.textContent = value;
+                        }
+                    } else if (String(value).length > 100) {
+                        // 长文本截断显示
+                        td.innerHTML = `<span class="truncated-text" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
                     } else {
+                        // 默认显示
                         td.textContent = value;
                     }
+                    
                     tr.appendChild(td);
                 });
                 
                 tableBody.appendChild(tr);
             });
             
-            // 更新行计数
-            rowCount.textContent = `显示 ${currentPage * pageSize + 1} 到 ${currentPage * pageSize + data.length}`;
+            // 更新行计数和分页显示
+            const startRecord = currentPage * pageSize + 1;
+            const endRecord = startRecord + data.length - 1;
+            rowCount.textContent = `${startRecord}-${endRecord}`;
             
             // 启用/禁用分页按钮
-            prevPage.disabled = currentPage === 0;
-            nextPage.disabled = data.length < pageSize;
+            document.getElementById('prev-page').parentElement.classList.toggle('disabled', currentPage === 0);
+            document.getElementById('next-page').parentElement.classList.toggle('disabled', data.length < pageSize);
+            
+            // 更新分页指示器
+            updatePagination(currentPage);
         } else {
-            tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">无数据</td></tr>';
-            rowCount.textContent = '无记录';
+            // 没有数据的情况
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="100%">
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>表 "${currentTable}" 中没有数据</p>
+                            <span class="subtext">该表当前为空，您可以添加新数据或选择其他表</span>
+                        </div>
+                    </td>
+                </tr>`;
+            rowCount.textContent = '0';
             
             // 禁用分页按钮
-            prevPage.disabled = true;
-            nextPage.disabled = true;
+            document.getElementById('prev-page').parentElement.classList.add('disabled');
+            document.getElementById('next-page').parentElement.classList.add('disabled');
         }
     } catch (error) {
-        tableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
+        // 显示错误信息
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="100%">
+                    <div class="empty-state">
+                        <i class="bi bi-exclamation-triangle" style="color: var(--danger-color);"></i>
+                        <p class="text-danger">加载失败: ${error.message}</p>
+                        <span class="subtext">请检查数据库连接或刷新页面重试</span>
+                    </div>
+                </td>
+            </tr>`;
         rowCount.textContent = '加载失败';
         console.error('加载表数据错误:', error);
         showAlert('加载表数据失败: ' + error.message, 'error');
     } finally {
-        hideLoading();
+        hideLoading('table');
+    }
+}
+
+/**
+ * 更新分页指示器
+ * @param {number} currentPage - 当前页码
+ */
+function updatePagination(currentPage) {
+    const paginationList = document.querySelector('.pagination');
+    if (!paginationList) return;
+    
+    // 清除现有页码，只保留前后按钮
+    Array.from(paginationList.querySelectorAll('li:not(:first-child):not(:last-child)')).forEach(item => {
+        item.remove();
+    });
+    
+    // 最大显示5个页码按钮
+    const maxPages = 5;
+    const startPage = Math.max(0, currentPage - Math.floor(maxPages / 2));
+    
+    // 添加页码按钮
+    for (let i = startPage; i < startPage + maxPages; i++) {
+        const pageItem = document.createElement('li');
+        pageItem.classList.add('page-item');
+        if (i === currentPage) {
+            pageItem.classList.add('active');
+        }
+        
+        const pageLink = document.createElement('a');
+        pageLink.classList.add('page-link');
+        pageLink.href = '#';
+        pageLink.textContent = i + 1;
+        pageLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            currentPage = i;
+            loadTableData();
+        });
+        
+        pageItem.appendChild(pageLink);
+        paginationList.insertBefore(pageItem, document.getElementById('next-page').parentElement);
     }
 }
 
@@ -740,7 +955,7 @@ async function loadTableStructure() {
     
     try {
         console.log(`加载表结构: ${currentTable}`);
-        showLoading();
+        showLoading('structure');
         
         const result = await apiRequest(`/db_admin/api/table/${currentTable}/info`);
         
@@ -748,67 +963,115 @@ async function loadTableStructure() {
             throw new Error(result.error || '加载表结构失败');
         }
         
-        const structure = result.info;
-        console.log(`表结构加载成功: ${currentTable}`, structure);
-        
-        // 更新表名
-        structureTableName.textContent = currentTable;
-        
-        // 清空结构体
+        const columns = result.data;
         structureBody.innerHTML = '';
         
-        if (structure && structure.length > 0) {
-            // 创建表结构行
-            structure.forEach(column => {
+        // 首先为表结构表格的表头添加特定的CSS类
+        const structureHeaders = document.querySelectorAll('#structure-table th');
+        if (structureHeaders.length > 0) {
+            structureHeaders[0].classList.add('col-key');    // 字段名称
+            structureHeaders[1].classList.add('col-type');   // 数据类型
+            structureHeaders[2].classList.add('col-boolean'); // 允许为空
+            structureHeaders[3].classList.add('col-key');    // 键类型
+            structureHeaders[4].classList.add('col-type');   // 默认值
+            structureHeaders[5].classList.add('col-type');   // 其他属性
+        }
+        
+        if (columns.length > 0) {
+            columns.forEach(column => {
                 const tr = document.createElement('tr');
                 
                 // 字段名
-                const fieldTd = document.createElement('td');
-                fieldTd.textContent = column.Field;
-                tr.appendChild(fieldTd);
+                const tdName = document.createElement('td');
+                tdName.classList.add('col-key');
+                tdName.innerHTML = `<span class="field-key">${column.Field}</span>`;
+                tr.appendChild(tdName);
                 
-                // 类型
-                const typeTd = document.createElement('td');
-                typeTd.textContent = column.Type;
-                tr.appendChild(typeTd);
+                // 字段类型
+                const tdType = document.createElement('td');
+                tdType.classList.add('col-type');
+                tdType.innerHTML = `<span class="field-type">${column.Type}</span>`;
+                tr.appendChild(tdType);
                 
-                // 可空
-                const nullableTd = document.createElement('td');
-                nullableTd.textContent = column.Null;
-                tr.appendChild(nullableTd);
+                // 可为空
+                const tdNull = document.createElement('td');
+                tdNull.classList.add('col-boolean');
+                if (column.Null === 'YES') {
+                    tdNull.innerHTML = `<span class="field-nullable">允许</span>`;
+                } else {
+                    tdNull.innerHTML = `<span class="badge bg-danger">不允许</span>`;
+                }
+                tr.appendChild(tdNull);
                 
-                // 键
-                const keyTd = document.createElement('td');
-                keyTd.textContent = column.Key;
-                tr.appendChild(keyTd);
+                // 键类型
+                const tdKey = document.createElement('td');
+                tdKey.classList.add('col-key');
+                if (column.Key === 'PRI') {
+                    tdKey.innerHTML = `<span class="badge" style="background-color: var(--primary-color);">主键</span>`;
+                } else if (column.Key === 'UNI') {
+                    tdKey.innerHTML = `<span class="badge bg-info">唯一</span>`;
+                } else if (column.Key === 'MUL') {
+                    tdKey.innerHTML = `<span class="badge bg-warning">索引</span>`;
+                } else {
+                    tdKey.innerHTML = `<span class="text-muted">-</span>`;
+                }
+                tr.appendChild(tdKey);
                 
                 // 默认值
-                const defaultTd = document.createElement('td');
-                defaultTd.textContent = column.Default !== null ? column.Default : '';
-                tr.appendChild(defaultTd);
+                const tdDefault = document.createElement('td');
+                tdDefault.classList.add('col-type');
+                if (column.Default === null) {
+                    tdDefault.innerHTML = `<span class="null-value">NULL</span>`;
+                } else {
+                    tdDefault.textContent = column.Default;
+                }
+                tr.appendChild(tdDefault);
                 
-                // 额外
-                const extraTd = document.createElement('td');
-                extraTd.textContent = column.Extra;
-                tr.appendChild(extraTd);
+                // 额外属性
+                const tdExtra = document.createElement('td');
+                tdExtra.classList.add('col-type');
+                if (column.Extra) {
+                    if (column.Extra.includes('auto_increment')) {
+                        tdExtra.innerHTML = `<span class="badge bg-secondary">自动递增</span>`;
+                    } else {
+                        tdExtra.textContent = column.Extra;
+                    }
+                } else {
+                    tdExtra.innerHTML = `<span class="text-muted">-</span>`;
+                }
+                tr.appendChild(tdExtra);
                 
                 structureBody.appendChild(tr);
             });
         } else {
-            structureBody.innerHTML = '<tr><td colspan="6" class="text-center">无表结构信息</td></tr>';
+            structureBody.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="bi bi-layout-text-window"></i>
+                            <p>无表结构信息</p>
+                            <span class="subtext">未能获取到表结构数据</span>
+                        </div>
+                    </td>
+                </tr>`;
         }
         
-        // 显示结构面板
         structurePanel.style.display = 'block';
     } catch (error) {
-        structureBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
+        structureBody.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    <div class="empty-state">
+                        <i class="bi bi-exclamation-triangle" style="color: var(--danger-color);"></i>
+                        <p class="text-danger">加载失败: ${error.message}</p>
+                        <span class="subtext">请检查数据库连接或刷新页面重试</span>
+                    </div>
+                </td>
+            </tr>`;
         console.error('加载表结构错误:', error);
         showAlert('加载表结构失败: ' + error.message, 'error');
-        
-        // 仍然显示面板，以便用户看到错误信息
-        structurePanel.style.display = 'block';
     } finally {
-        hideLoading();
+        hideLoading('structure');
     }
 }
 
