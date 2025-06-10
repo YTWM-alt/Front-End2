@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}视频管理 - 数据库管理工具{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">视频管理</h1>
+        <button class="btn btn-primary" onclick="exportData('videos')">
+            <i class="fas fa-download me-1"></i>导出视频数据
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>格式</th>
+                            <th>大小</th>
+                            <th>时长</th>
+                            <th>上传时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr>
+                            <td>{{ video.id }}</td>
+                            <td>{{ video.title }}</td>
+                            <td>{{ video.format }}</td>
+                            <td>{{ video.size }}</td>
+                            <td>{{ video.duration }}</td>
+                            <td>{{ video.created_at }}</td>
+                            <td>
+                                <span class="badge {% if video.status == 'ready' %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ video.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" title="播放" onclick="playVideo({{ video.id }})">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info me-1" title="编辑" onclick="editVideo({{ video.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" title="删除" onclick="deleteVideo({{ video.id }})">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 视频播放对话框 -->
+<div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">视频播放</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <video id="videoPlayer" class="w-100" controls>
+                    您的浏览器不支持HTML5视频播放。
+                </video>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 视频编辑对话框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑视频信息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editVideoId">
+                    <div class="mb-3">
+                        <label class="form-label">标题</label>
+                        <input type="text" class="form-control" id="editTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">状态</label>
+                        <select class="form-select" id="editStatus">
+                            <option value="ready">就绪</option>
+                            <option value="processing">处理中</option>
+                            <option value="error">错误</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveVideo()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 视频播放对话框
+    const videoModal = new bootstrap.Modal(document.getElementById('videoModal'));
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    const videoPlayer = document.getElementById('videoPlayer');
+    
+    // 播放视频
+    function playVideo(videoId) {
+        fetch(`/api/videos/${videoId}/play`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const video = data.video;
+                    videoPlayer.src = `/videos/${video.file_path.split('/').pop()}`;
+                    videoModal.show();
+                } else {
+                    alert('获取视频信息失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('播放视频失败:', error);
+                alert('播放视频失败');
+            });
+    }
+    
+    // 编辑视频
+    function editVideo(videoId) {
+        document.getElementById('editVideoId').value = videoId;
+        // 获取当前行的数据
+        const row = event.target.closest('tr');
+        document.getElementById('editTitle').value = row.cells[1].textContent;
+        document.getElementById('editStatus').value = row.cells[6].textContent.trim();
+        editModal.show();
+    }
+    
+    // 保存视频信息
+    function saveVideo() {
+        const videoId = document.getElementById('editVideoId').value;
+        const data = {
+            title: document.getElementById('editTitle').value,
+            description: document.getElementById('editDescription').value,
+            status: document.getElementById('editStatus').value
+        };
+        
+        fetch(`/api/videos/${videoId}/update`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('视频信息更新成功');
+                editModal.hide();
+                location.reload();
+            } else {
+                alert('更新失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('更新视频信息失败:', error);
+            alert('更新视频信息失败');
+        });
+    }
+    
+    // 删除视频
+    function deleteVideo(videoId) {
+        if (!confirm('确定要删除这个视频吗？此操作不可恢复！')) {
+            return;
+        }
+        
+        fetch(`/api/videos/${videoId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('视频删除成功');
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('删除视频失败:', error);
+            alert('删除视频失败');
+        });
+    }
+    
+    // 关闭视频对话框时停止播放
+    document.getElementById('videoModal').addEventListener('hidden.bs.modal', function () {
+        videoPlayer.pause();
+        videoPlayer.src = '';
+    });
+</script>
+{% endblock %} 

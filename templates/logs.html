@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}系统日志 - 数据库管理工具{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">系统日志</h1>
+        <div>
+            <button class="btn btn-secondary me-2" onclick="clearLogs()">
+                <i class="fas fa-eraser me-1"></i>清空日志
+            </button>
+            <button class="btn btn-primary" onclick="exportLogs()">
+                <i class="fas fa-download me-1"></i>导出日志
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-md-3">
+                    <select class="form-select" id="logLevel">
+                        <option value="all">所有级别</option>
+                        <option value="info">信息</option>
+                        <option value="warning">警告</option>
+                        <option value="error">错误</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" class="form-control" id="logDate">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="searchKeyword" placeholder="搜索关键词...">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" onclick="filterLogs()">
+                        <i class="fas fa-search me-1"></i>筛选
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>级别</th>
+                            <th>模块</th>
+                            <th>消息</th>
+                            <th>详情</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        {% for log in logs %}
+                        <tr class="log-row {{ log.level }}">
+                            <td>{{ log.timestamp }}</td>
+                            <td>
+                                <span class="badge {% if log.level == 'error' %}bg-danger{% elif log.level == 'warning' %}bg-warning{% else %}bg-info{% endif %}">
+                                    {{ log.level }}
+                                </span>
+                            </td>
+                            <td>{{ log.module }}</td>
+                            <td>{{ log.message }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="showLogDetail('{{ log.id }}')">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志详情对话框 -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">日志详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">时间</label>
+                    <input type="text" class="form-control" id="detailTimestamp" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">级别</label>
+                    <input type="text" class="form-control" id="detailLevel" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">模块</label>
+                    <input type="text" class="form-control" id="detailModule" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">消息</label>
+                    <textarea class="form-control" id="detailMessage" rows="3" readonly></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">堆栈跟踪</label>
+                    <pre class="border rounded p-3 bg-light"><code id="detailStackTrace"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const logDetailModal = new bootstrap.Modal(document.getElementById('logDetailModal'));
+    
+    // 筛选日志
+    function filterLogs() {
+        const level = document.getElementById('logLevel').value;
+        const date = document.getElementById('logDate').value;
+        const keyword = document.getElementById('searchKeyword').value;
+        
+        fetch(`/api/logs/filter?level=${level}&date=${date}&keyword=${keyword}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateLogTable(data.logs);
+                } else {
+                    alert('筛选日志失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('筛选日志失败:', error);
+                alert('筛选日志失败');
+            });
+    }
+    
+    // 更新日志表格
+    function updateLogTable(logs) {
+        const tbody = document.getElementById('logTableBody');
+        tbody.innerHTML = '';
+        
+        logs.forEach(log => {
+            const row = document.createElement('tr');
+            row.className = `log-row ${log.level}`;
+            
+            row.innerHTML = `
+                <td>${log.timestamp}</td>
+                <td>
+                    <span class="badge ${getBadgeClass(log.level)}">
+                        ${log.level}
+                    </span>
+                </td>
+                <td>${log.module}</td>
+                <td>${log.message}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="showLogDetail('${log.id}')">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+    
+    // 获取日志级别对应的徽章样式
+    function getBadgeClass(level) {
+        switch (level) {
+            case 'error': return 'bg-danger';
+            case 'warning': return 'bg-warning';
+            default: return 'bg-info';
+        }
+    }
+    
+    // 显示日志详情
+    function showLogDetail(logId) {
+        fetch(`/api/logs/${logId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const log = data.log;
+                    document.getElementById('detailTimestamp').value = log.timestamp;
+                    document.getElementById('detailLevel').value = log.level;
+                    document.getElementById('detailModule').value = log.module;
+                    document.getElementById('detailMessage').value = log.message;
+                    document.getElementById('detailStackTrace').textContent = log.stack_trace || '无堆栈跟踪信息';
+                    logDetailModal.show();
+                } else {
+                    alert('获取日志详情失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('获取日志详情失败:', error);
+                alert('获取日志详情失败');
+            });
+    }
+    
+    // 清空日志
+    function clearLogs() {
+        if (!confirm('确定要清空所有日志吗？此操作不可恢复！')) {
+            return;
+        }
+        
+        fetch('/api/logs/clear', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('日志清空成功');
+                    location.reload();
+                } else {
+                    alert('清空日志失败：' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('清空日志失败:', error);
+                alert('清空日志失败');
+            });
+    }
+    
+    // 导出日志
+    function exportLogs() {
+        const level = document.getElementById('logLevel').value;
+        const date = document.getElementById('logDate').value;
+        const keyword = document.getElementById('searchKeyword').value;
+        
+        window.location.href = `/api/logs/export?level=${level}&date=${date}&keyword=${keyword}`;
+    }
+</script>
+{% endblock %} 

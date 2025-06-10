@@ -1,0 +1,102 @@
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 日志文件
+*.log
+logs/
+app.log
+
+# 数据库和数据文件
+database/
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# 视频文件和多媒体
+*.mp4
+*.webm
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+
+# 用户上传的文件
+database/video/
+database/touxiang/
+database/user/
+database/question/
+database/answer/
+database/feedback/
+database/requestion/
+database/AI_product/
+
+# 前端构建和依赖
+node_modules/
+/react/node_modules/
+/react/build/
+/react/.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# IDE和编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 系统相关
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# 个人配置和环境变量
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 缓存文件
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 大文件和缓存目录
+.git/objects/pack/
+.git/index
+**/default-development/*.pack
+
+# 虚拟环境中的大文件
+venv/lib/python*/site-packages/cv2/
+venv/lib/python*/site-packages/imageio_ffmpeg/
+venv/lib/python*/site-packages/numpy.libs/
+venv/lib/python*/site-packages/opencv_python*
+
+# 其他临时文件
+*.bak
+*.backup
+*.swp
+*.tmp
+*.temp

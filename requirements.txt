@@ -1,0 +1,67 @@
+# 基础科学计算
+numpy==1.21.2  # 数值计算（moviepy和opencv的依赖）
+
+# Flask及其扩展
+Flask==2.0.1
+Flask-SQLAlchemy==2.5.1
+Flask-Migrate==3.1.0
+Flask-JWT-Extended==4.3.1
+Flask-CORS==3.0.10
+Werkzeug==2.0.1
+
+# 数据库
+SQLAlchemy==1.4.23
+alembic==1.7.3
+psycopg2-binary==2.9.1  # PostgreSQL驱动
+PyMySQL==1.0.2  # MySQL驱动
+
+# 工具包
+python-dotenv==0.19.0  # 环境变量管理
+requests==2.26.0  # HTTP请求
+pydantic==1.8.2  # 数据验证
+python-dateutil==2.8.2  # 日期时间处理
+pytz==2021.1  # 时区处理
+
+# 文件处理
+Pillow==8.3.2  # 图像处理
+python-magic==0.4.24  # 文件类型检测
+
+# 视频处理
+moviepy==1.0.3  # 视频编辑
+opencv-python==4.5.3.56  # 视频处理（无GUI版本）
+decorator==4.4.2  # moviepy的依赖
+imageio==2.9.0  # moviepy的依赖
+imageio-ffmpeg==0.4.5  # 视频编码解码
+tqdm==4.62.2  # 进度条（moviepy使用）
+
+# 安全相关
+bcrypt==3.2.0  # 密码哈希
+cryptography==39.0.1  # 加密工具
+PyJWT==2.1.0  # JWT处理
+
+# 日志和监控
+structlog==21.1.0  # 结构化日志
+
+# 测试工具
+pytest==6.2.5
+pytest-flask==1.2.0
+coverage==5.5
+
+# 开发工具
+black==21.7b0  # 代码格式化
+flake8==3.9.2  # 代码检查
+isort==5.9.3  # import排序
+
+# 文档
+Sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+
+# 新增依赖
+gunicorn==20.1.0
+pyfiglet==0.8.post1
+colorama==0.4.4
+termcolor==1.1.0
+rich==10.12.0
+openpyxl==3.0.9
+mysql-connector-python==8.0.27
+mysqlclient==2.1.0 
