@@ -61,6 +61,14 @@ def create_app(config_class=None):
     app.register_blueprint(feedback.bp, url_prefix='/api/feedback')
     app.register_blueprint(ai.bp, url_prefix='/api/ai')
     
+    # 注册数据库管理模块
+    try:
+        import db_admin
+        db_admin.init_app(app)
+        logger.info("数据库管理模块已加载")
+    except Exception as e:
+        logger.error(f"加载数据库管理模块出错: {str(e)}")
+    
     # 添加静态文件路由
     @app.route('/videos/<filename>')
     def serve_video_file(filename):

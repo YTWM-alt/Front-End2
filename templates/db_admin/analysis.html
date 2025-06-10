@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI平台 - 数据库分析</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --dark-color: #5a5c69;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background-color: #f8f9fc;
+            padding-top: 20px;
+            color: #444;
+        }
+        
+        .navbar {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            background: linear-gradient(to right, var(--primary-color), #224abe);
+        }
+        
+        .main-content {
+            margin-top: 60px;
+            padding: 20px;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            margin-bottom: 24px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 1rem 1.25rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .query-editor {
+            font-family: 'Courier New', monospace;
+            min-height: 150px;
+            resize: vertical;
+            background-color: #f8f9fc;
+            border-color: #e3e6f0;
+        }
+        
+        .chart-container {
+            height: 400px;
+            position: relative;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary-color), #224abe);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(to right, #4468c8, #1c3ea4);
+        }
+        
+        .tab-content {
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 0 0 0.5rem 0.5rem;
+            border-top: none;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            background-color: transparent;
+        }
+        
+        .table-responsive {
+            max-height: 500px;
+        }
+        
+        .alert-banner {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            max-width: 350px;
+            z-index: 1050;
+        }
+        
+        .query-templates {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/db_admin/">
+                <i class="bi bi-database-fill"></i> AI平台 - 数据库分析
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/db_admin/">
+                            <i class="bi bi-speedometer2"></i> 返回仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/" target="_blank">
+                            <i class="bi bi-house"></i> 返回主站
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-content">
+        <!-- 警告提示区域 -->
+        <div id="alert-container" class="alert-banner"></div>
+        
+        <!-- 页面标题 -->
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2"><i class="bi bi-bar-chart-fill"></i> 数据库分析</h1>
+        </div>
+        
+        <div class="row">
+            <!-- 左侧查询区域 -->
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="bi bi-code-square"></i> 高级查询</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="analysis-form">
+                            <div class="mb-3">
+                                <label for="analysis-query" class="form-label">SQL查询语句</label>
+                                <textarea class="form-control query-editor" id="analysis-query" rows="5" placeholder="输入您的SQL查询..."></textarea>
+                                <div class="form-text">使用SQL查询语句获取数据进行分析</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">图表设置</label>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <select class="form-select" id="chart-type">
+                                            <option value="bar">柱状图</option>
+                                            <option value="line">折线图</option>
+                                            <option value="pie">饼图</option>
+                                            <option value="doughnut">环形图</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" id="chart-title" placeholder="图表标题">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" id="show-templates">
+                                    <i class="bi bi-list-check"></i> 查询模板
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-play-fill"></i> 执行分析
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 查询模板卡片 -->
+                <div class="card" id="templates-card" style="display: none;">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary"><i class="bi bi-list-check"></i> 常用查询模板</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group query-templates">
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT title, view_count FROM videos ORDER BY view_count DESC LIMIT 10;" data-title="视频观看排行">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">视频观看排行</h6>
+                                    <small class="text-muted">柱状图</small>
+                                </div>
+                                <p class="mb-1">获取观看次数最多的10个视频</p>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS count FROM users GROUP BY month ORDER BY month;" data-title="用户注册趋势">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">用户注册趋势</h6>
+                                    <small class="text-muted">折线图</small>
+                                </div>
+                                <p class="mb-1">按月统计用户注册数量</p>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT status, COUNT(*) AS count FROM questions GROUP BY status;" data-title="问题状态分布">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">问题状态分布</h6>
+                                    <small class="text-muted">饼图</small>
+                                </div>
+                                <p class="mb-1">统计不同状态的问题数量</p>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT type, COUNT(*) AS count FROM feedbacks GROUP BY type;" data-title="反馈类型分布">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">反馈类型分布</h6>
+                                    <small class="text-muted">环形图</small>
+                                </div>
+                                <p class="mb-1">统计不同类型的反馈数量</p>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT format, COUNT(*) AS count FROM videos GROUP BY format;" data-title="视频格式分布">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">视频格式分布</h6>
+                                    <small class="text-muted">饼图</small>
+                                </div>
+                                <p class="mb-1">统计不同格式的视频数量</p>
+                            </button>
+                            <button type="button" class="list-group-item list-group-item-action" data-query="SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, SUM(file_size)/1024/1024 AS size_mb FROM videos GROUP BY month ORDER BY month;" data-title="月度视频存储量">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">月度视频存储量</h6>
+                                    <small class="text-muted">柱状图</small>
+                                </div>
+                                <p class="mb-1">按月统计上传视频的存储大小(MB)</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧结果区域 -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header py-3">
+                        <ul class="nav nav-tabs card-header-tabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="chart-tab" data-bs-toggle="tab" href="#chart-content">图表</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="data-tab" data-bs-toggle="tab" href="#data-content">数据</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="chart-content">
+                            <div id="no-data-message" class="text-center py-5">
+                                <i class="bi bi-bar-chart-line" style="font-size: 3rem; color: #dddfeb;"></i>
+                                <h5 class="mt-3">执行查询以生成图表</h5>
+                                <p class="text-muted">使用左侧表单进行数据分析</p>
+                            </div>
+                            <div class="chart-container" id="chart-container" style="display: none;">
+                                <canvas id="analysis-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="data-content">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="result-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>请执行查询</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-center">暂无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex justify-content-between mt-3">
+                                <div>
+                                    <span id="result-count">0</span> 条记录
+                                </div>
+                                <button id="export-result" class="btn btn-sm btn-outline-primary" disabled>
+                                    <i class="bi bi-download"></i> 导出数据
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载中提示 -->
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-2">数据分析中，请稍候...</p>
+        </div>
+    </div>
+
+    <!-- JavaScript 脚本 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.all.min.js"></script>
+    <script src="/static/db_admin/chart-utils.js"></script>
+    <script>
+        // DOM元素
+        const analysisForm = document.getElementById('analysis-form');
+        const analysisQuery = document.getElementById('analysis-query');
+        const chartType = document.getElementById('chart-type');
+        const chartTitle = document.getElementById('chart-title');
+        const showTemplates = document.getElementById('show-templates');
+        const templatesCard = document.getElementById('templates-card');
+        const templateButtons = document.querySelectorAll('.query-templates .list-group-item');
+        const noDataMessage = document.getElementById('no-data-message');
+        const chartContainer = document.getElementById('chart-container');
+        const analysisChart = document.getElementById('analysis-chart');
+        const resultTable = document.getElementById('result-table');
+        const resultCount = document.getElementById('result-count');
+        const exportResult = document.getElementById('export-result');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const alertContainer = document.getElementById('alert-container');
+        
+        // 全局变量
+        let queryResults = [];
+        
+        /**
+         * 显示加载中动画
+         */
+        function showLoading() {
+            loadingSpinner.style.display = 'block';
+        }
+        
+        /**
+         * 隐藏加载中动画
+         */
+        function hideLoading() {
+            loadingSpinner.style.display = 'none';
+        }
+        
+        /**
+         * 显示通知消息
+         * @param {string} message - 消息内容
+         * @param {string} type - 消息类型 (success, error, warning, info)
+         */
+        function showAlert(message, type = 'info') {
+            Swal.fire({
+                title: type.charAt(0).toUpperCase() + type.slice(1),
+                text: message,
+                icon: type,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+        }
+        
+        /**
+         * 发送API请求
+         * @param {string} url - API URL
+         * @param {string} method - 请求方法 (GET, POST)
+         * @param {object} data - 请求数据
+         * @returns {Promise} - 响应Promise
+         */
+        async function apiRequest(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Basic ' + btoa('admin:admin123')
+                    }
+                };
+                
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || '请求失败');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API请求错误:', error);
+                showAlert(error.message, 'error');
+                throw error;
+            }
+        }
+        
+        /**
+         * 执行查询分析
+         * @param {string} query - SQL查询语句
+         */
+        async function executeAnalysis(query) {
+            if (!query.trim()) {
+                showAlert('请输入SQL查询语句', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await apiRequest('/db_admin/api/query', 'POST', { query });
+                
+                if (result.success) {
+                    if (Array.isArray(result.result) && result.result.length > 0) {
+                        // 保存查询结果
+                        queryResults = result.result;
+                        
+                        // 更新数据表格
+                        updateResultTable(queryResults);
+                        
+                        // 创建图表
+                        createAnalysisChart(queryResults);
+                        
+                        // 更新记录数
+                        resultCount.textContent = queryResults.length;
+                        
+                        // 启用导出按钮
+                        exportResult.disabled = false;
+                        
+                        showAlert('查询执行成功', 'success');
+                    } else {
+                        // 查询操作无结果
+                        showNoData('查询执行成功，但没有返回数据');
+                        showAlert('查询执行成功，但没有返回数据', 'info');
+                    }
+                } else {
+                    // 查询失败
+                    showNoData('查询执行失败');
+                    showAlert(`查询执行失败: ${result.result}`, 'error');
+                }
+            } catch (error) {
+                showNoData('查询执行错误');
+                showAlert(`查询执行错误: ${error.message}`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        /**
+         * 更新结果表格
+         * @param {Array} data - 查询结果数据
+         */
+        function updateResultTable(data) {
+            if (!data || data.length === 0) {
+                resultTable.innerHTML = `
+                    <thead class="table-light">
+                        <tr>
+                            <th>无数据</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-center">暂无数据</td>
+                        </tr>
+                    </tbody>
+                `;
+                return;
+            }
+            
+            const columns = Object.keys(data[0]);
+            
+            let theadHtml = '<thead class="table-light"><tr>';
+            columns.forEach(col => {
+                theadHtml += `<th>${col}</th>`;
+            });
+            theadHtml += '</tr></thead>';
+            
+            let tbodyHtml = '<tbody>';
+            data.forEach(row => {
+                tbodyHtml += '<tr>';
+                columns.forEach(col => {
+                    const value = row[col];
+                    if (value === null) {
+                        tbodyHtml += '<td><span class="text-muted">NULL</span></td>';
+                    } else if (typeof value === 'object') {
+                        tbodyHtml += `<td>${JSON.stringify(value)}</td>`;
+                    } else {
+                        tbodyHtml += `<td>${value}</td>`;
+                    }
+                });
+                tbodyHtml += '</tr>';
+            });
+            tbodyHtml += '</tbody>';
+            
+            resultTable.innerHTML = theadHtml + tbodyHtml;
+        }
+        
+        /**
+         * 创建分析图表
+         * @param {Array} data - 查询结果数据
+         */
+        function createAnalysisChart(data) {
+            if (!data || data.length === 0) {
+                showNoData();
+                return;
+            }
+            
+            // 显示图表容器，隐藏无数据消息
+            noDataMessage.style.display = 'none';
+            chartContainer.style.display = 'block';
+            
+            const columns = Object.keys(data[0]);
+            
+            // 默认使用第一列作为标签，第二列作为数据
+            // 如果只有一列，则使用索引作为标签
+            let labelField, valueField;
+            
+            if (columns.length >= 2) {
+                labelField = columns[0];
+                valueField = columns[1];
+            } else {
+                labelField = null;
+                valueField = columns[0];
+            }
+            
+            // 如果标签字段为null，则创建索引标签
+            let labels, values;
+            
+            if (labelField === null) {
+                labels = data.map((_, index) => `项目 ${index + 1}`);
+                values = data.map(item => item[valueField]);
+            } else {
+                // 使用指定的字段
+                labels = data.map(item => item[labelField]);
+                values = data.map(item => item[valueField]);
+            }
+            
+            // 根据图表类型创建不同的图表
+            const type = chartType.value || 'bar';
+            const title = chartTitle.value || '查询结果分析';
+            
+            switch (type) {
+                case 'bar':
+                    createBarChart('analysis-chart', labels, values, title);
+                    break;
+                case 'line':
+                    createLineChart('analysis-chart', labels, [{
+                        label: title,
+                        data: values
+                    }], title);
+                    break;
+                case 'pie':
+                    createPieChart('analysis-chart', labels, values, title, false);
+                    break;
+                case 'doughnut':
+                    createPieChart('analysis-chart', labels, values, title, true);
+                    break;
+                default:
+                    console.error('未知的图表类型:', type);
+            }
+        }
+        
+        /**
+         * 显示无数据消息
+         * @param {string} message - 显示的消息
+         */
+        function showNoData(message = '执行查询以生成图表') {
+            // 显示无数据消息，隐藏图表容器
+            noDataMessage.style.display = 'block';
+            chartContainer.style.display = 'none';
+            
+            // 更新消息
+            const titleElem = noDataMessage.querySelector('h5');
+            if (titleElem) {
+                titleElem.textContent = message;
+            }
+            
+            // 清空结果表格
+            resultTable.innerHTML = `
+                <thead class="table-light">
+                    <tr>
+                        <th>无数据</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="text-center">暂无数据</td>
+                    </tr>
+                </tbody>
+            `;
+            
+            // 更新记录数
+            resultCount.textContent = '0';
+            
+            // 禁用导出按钮
+            exportResult.disabled = true;
+        }
+        
+        /**
+         * 导出查询结果为CSV
+         */
+        function exportResultsToCSV() {
+            try {
+                if (!queryResults || queryResults.length === 0) {
+                    showAlert('没有可导出的数据', 'warning');
+                    return;
+                }
+                
+                const columns = Object.keys(queryResults[0]);
+                
+                // 创建CSV内容
+                let csvContent = columns.join(',') + '\n';
+                
+                queryResults.forEach(row => {
+                    const rowValues = columns.map(col => {
+                        const value = row[col];
+                        if (value === null) {
+                            return '';
+                        } else if (typeof value === 'object') {
+                            return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+                        } else {
+                            return `"${value.toString().replace(/"/g, '""')}"`;
+                        }
+                    });
+                    csvContent += rowValues.join(',') + '\n';
+                });
+                
+                // 创建下载链接
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `analysis_result_${new Date().toISOString().slice(0, 10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showAlert(`已导出 ${queryResults.length} 条记录`, 'success');
+            } catch (error) {
+                console.error('导出结果错误:', error);
+                showAlert('导出结果失败', 'error');
+            }
+        }
+        
+        // 事件监听器
+        document.addEventListener('DOMContentLoaded', () => {
+            // 分析表单提交
+            analysisForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                executeAnalysis(analysisQuery.value);
+            });
+            
+            // 显示/隐藏查询模板
+            showTemplates.addEventListener('click', () => {
+                templatesCard.style.display = templatesCard.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            // 查询模板点击
+            templateButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const query = button.getAttribute('data-query');
+                    const title = button.getAttribute('data-title');
+                    
+                    analysisQuery.value = query;
+                    chartTitle.value = title;
+                    
+                    // 根据模板设置合适的图表类型
+                    const templateType = button.querySelector('small').textContent.trim();
+                    switch (templateType) {
+                        case '柱状图':
+                            chartType.value = 'bar';
+                            break;
+                        case '折线图':
+                            chartType.value = 'line';
+                            break;
+                        case '饼图':
+                            chartType.value = 'pie';
+                            break;
+                        case '环形图':
+                            chartType.value = 'doughnut';
+                            break;
+                    }
+                    
+                    // 隐藏模板卡片
+                    templatesCard.style.display = 'none';
+                });
+            });
+            
+            // 导出结果按钮
+            exportResult.addEventListener('click', () => {
+                exportResultsToCSV();
+            });
+        });
+    </script>
+</body>
+</html> 

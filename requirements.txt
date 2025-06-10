@@ -28,7 +28,7 @@ python-magic==0.4.24  # 文件类型检测
 
 # 视频处理
 moviepy==1.0.3  # 视频编辑
-opencv-python==4.5.3.56  # 视频处理（无GUI版本）
+opencv-python  # 视频处理（无GUI版本）
 decorator==4.4.2  # moviepy的依赖
 imageio==2.9.0  # moviepy的依赖
 imageio-ffmpeg==0.4.5  # 视频编码解码
