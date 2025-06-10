@@ -9,6 +9,10 @@ let pageSize = 100;
 let isConnected = false;
 let tableStats = {};
 
+// 图表实例全局变量
+let distributionChart = null;
+let growthChart = null;
+
 // DOM元素
 const connectionPanel = document.getElementById('connection-panel');
 const connectionForm = document.getElementById('connection-form');
@@ -17,9 +21,13 @@ const connectionStatusText = document.getElementById('connection-status-text');
 const refreshConnection = document.getElementById('refresh-connection');
 const dashboardLink = document.getElementById('dashboard-link');
 const dashboardPanel = document.getElementById('dashboard-panel');
+const dashboardStatus = document.getElementById('dashboard-status'); // 仪表盘状态指示器
+const dashboardStatusMessage = document.getElementById('dashboard-status-message'); // 仪表盘状态消息
+const dashboardLoadingSpinner = document.getElementById('dashboard-loading-spinner'); // 仪表盘加载动画
 const userCountElem = document.getElementById('user-count');
 const videoCountElem = document.getElementById('video-count');
 const questionCountElem = document.getElementById('question-count');
+const answersCountElem = document.getElementById('answers-count'); // 回答数量
 const feedbackCountElem = document.getElementById('feedback-count');
 const refreshDashboard = document.getElementById('refresh-dashboard');
 const tablesList = document.getElementById('tables-list');
@@ -94,7 +102,9 @@ function showAlert(message, type = 'info') {
  * @returns {Promise} - 响应Promise
  */
 async function apiRequest(url, method = 'GET', data = null) {
+    showLoading();
     try {
+        console.log(`发送请求: ${method} ${url}`, data);
         const options = {
             method,
             headers: {
@@ -108,17 +118,33 @@ async function apiRequest(url, method = 'GET', data = null) {
         }
 
         const response = await fetch(url, options);
-        const result = await response.json();
+        let result;
+        
+        try {
+            result = await response.json();
+        } catch (jsonError) {
+            console.error('JSON解析错误:', jsonError);
+            throw new Error(`无法解析响应: ${jsonError.message}`);
+        }
 
+        console.log(`收到响应: ${url}`, result);
+        
         if (!response.ok) {
             throw new Error(result.message || '请求失败');
+        }
+
+        // 检查结果中是否有错误信息
+        if (result.error) {
+            throw new Error(result.error);
         }
 
         return result;
     } catch (error) {
         console.error('API请求错误:', error);
-        showAlert(error.message, 'error');
+        showAlert(`请求失败: ${error.message}`, 'error');
         throw error;
+    } finally {
+        hideLoading();
     }
 }
 
@@ -256,41 +282,191 @@ async function loadDashboard() {
     }
     
     try {
+        console.log('开始加载仪表盘数据...');
         showLoading();
         
-        // 获取每个表的记录数
-        const tables = ['users', 'videos', 'questions', 'answers', 'feedbacks'];
-        tableStats = {};
+        // 显示仪表盘状态
+        dashboardStatus.className = 'alert alert-info mb-4';
+        dashboardStatusMessage.textContent = '正在加载仪表盘数据，请稍候...';
+        dashboardLoadingSpinner.style.display = 'inline-block';
+        dashboardStatus.style.display = 'block';
         
-        for (const table of tables) {
+        // 先销毁现有图表，避免Canvas重用错误
+        if (distributionChart) {
             try {
-                const query = `SELECT COUNT(*) as count FROM ${table}`;
-                const result = await apiRequest('/db_admin/api/query', 'POST', { query });
-                
-                if (result.success && result.result && result.result.length > 0) {
-                    tableStats[table] = result.result[0].count;
-                } else {
-                    tableStats[table] = 0;
-                }
-            } catch (error) {
-                tableStats[table] = 0;
-                console.error(`获取${table}统计信息失败:`, error);
+                distributionChart.destroy();
+                distributionChart = null;
+            } catch (e) {
+                console.warn('销毁分布图表失败:', e);
             }
         }
         
-        // 更新统计卡片
-        userCountElem.textContent = tableStats.users || 0;
-        videoCountElem.textContent = tableStats.videos || 0;
-        questionCountElem.textContent = tableStats.questions || 0;
-        feedbackCountElem.textContent = tableStats.feedbacks || 0;
+        if (growthChart) {
+            try {
+                growthChart.destroy();
+                growthChart = null;
+            } catch (e) {
+                console.warn('销毁增长图表失败:', e);
+            }
+        }
         
-        // 更新饼图
-        updateDistributionChart();
+        // 使用串行请求而非并行请求，避免连接池耗尽
+        let successCount = 0;
+        let failedCount = 0;
         
+        // 1. 加载用户数量
+        try {
+            const usersResult = await apiRequest('/db_admin/api/query', 'POST', { 
+                query: 'SELECT COUNT(*) as count FROM users' 
+            });
+            if (usersResult.success) {
+                const count = usersResult.result[0].count;
+                userCountElem.textContent = count;
+                tableStats.users = count;
+                successCount++;
+            } else {
+                console.error('获取用户数失败:', usersResult.error || '未知错误');
+                userCountElem.textContent = 'N/A';
+                tableStats.users = 0;
+                failedCount++;
+            }
+        } catch (error) {
+            console.error('获取用户数失败:', error);
+            userCountElem.textContent = 'N/A';
+            tableStats.users = 0;
+            failedCount++;
+        }
+        
+        // 2. 加载视频数量
+        try {
+            const videosResult = await apiRequest('/db_admin/api/query', 'POST', { 
+                query: 'SELECT COUNT(*) as count FROM videos' 
+            });
+            if (videosResult.success) {
+                const count = videosResult.result[0].count;
+                videoCountElem.textContent = count;
+                tableStats.videos = count;
+                successCount++;
+            } else {
+                console.error('获取视频数失败:', videosResult.error || '未知错误');
+                videoCountElem.textContent = 'N/A';
+                tableStats.videos = 0;
+                failedCount++;
+            }
+        } catch (error) {
+            console.error('获取视频数失败:', error);
+            videoCountElem.textContent = 'N/A';
+            tableStats.videos = 0;
+            failedCount++;
+        }
+        
+        // 3. 加载问题数量
+        try {
+            const questionsResult = await apiRequest('/db_admin/api/query', 'POST', { 
+                query: 'SELECT COUNT(*) as count FROM questions' 
+            });
+            if (questionsResult.success) {
+                const count = questionsResult.result[0].count;
+                questionCountElem.textContent = count;
+                tableStats.questions = count;
+                successCount++;
+            } else {
+                console.error('获取问题数失败:', questionsResult.error || '未知错误');
+                questionCountElem.textContent = 'N/A';
+                tableStats.questions = 0;
+                failedCount++;
+            }
+        } catch (error) {
+            console.error('获取问题数失败:', error);
+            questionCountElem.textContent = 'N/A';
+            tableStats.questions = 0;
+            failedCount++;
+        }
+        
+        // 4. 加载回答数量
+        try {
+            const answersResult = await apiRequest('/db_admin/api/query', 'POST', { 
+                query: 'SELECT COUNT(*) as count FROM answers' 
+            });
+            if (answersResult.success) {
+                const count = answersResult.result[0].count;
+                answersCountElem.textContent = count;
+                tableStats.answers = count;
+                successCount++;
+            } else {
+                console.error('获取回答数失败:', answersResult.error || '未知错误');
+                answersCountElem.textContent = 'N/A';
+                tableStats.answers = 0;
+                failedCount++;
+            }
+        } catch (error) {
+            console.error('获取回答数失败:', error);
+            answersCountElem.textContent = 'N/A';
+            tableStats.answers = 0;
+            failedCount++;
+        }
+        
+        // 5. 加载反馈数量
+        try {
+            const feedbacksResult = await apiRequest('/db_admin/api/query', 'POST', { 
+                query: 'SELECT COUNT(*) as count FROM feedbacks' 
+            });
+            if (feedbacksResult.success) {
+                const count = feedbacksResult.result[0].count;
+                feedbackCountElem.textContent = count;
+                tableStats.feedbacks = count;
+                successCount++;
+            } else {
+                console.error('获取反馈数失败:', feedbacksResult.error || '未知错误');
+                feedbackCountElem.textContent = 'N/A';
+                tableStats.feedbacks = 0;
+                failedCount++;
+            }
+        } catch (error) {
+            console.error('获取反馈数失败:', error);
+            feedbackCountElem.textContent = 'N/A';
+            tableStats.feedbacks = 0;
+            failedCount++;
+        }
+        
+        // 更新图表
+        setTimeout(() => {
+            try {
+                updateDistributionChart();
+                updateGrowthChart();
+                console.log('所有图表更新完成');
+            } catch (error) {
+                console.error('更新图表失败:', error);
+            }
+        }, 100);
+        
+        console.log('仪表盘加载完成');
+        
+        // 更新仪表盘状态
+        if (failedCount === 0) {
+            dashboardStatus.className = 'alert alert-success mb-4';
+            dashboardStatusMessage.textContent = '仪表盘数据加载成功！';
+            // 3秒后隐藏状态
+            setTimeout(() => {
+                dashboardStatus.style.display = 'none';
+            }, 3000);
+        } else if (successCount > 0) {
+            dashboardStatus.className = 'alert alert-warning mb-4';
+            dashboardStatusMessage.textContent = `仪表盘部分数据加载失败，${successCount}个成功，${failedCount}个失败。`;
+        } else {
+            dashboardStatus.className = 'alert alert-danger mb-4';
+            dashboardStatusMessage.textContent = '仪表盘数据加载失败，请检查数据库连接。';
+        }
     } catch (error) {
         console.error('加载仪表盘错误:', error);
-        showAlert('加载仪表盘数据失败', 'error');
+        showAlert('加载仪表盘数据失败: ' + error.message, 'error');
+        
+        // 显示错误状态
+        dashboardStatus.className = 'alert alert-danger mb-4';
+        dashboardStatusMessage.textContent = `仪表盘加载出错: ${error.message}`;
     } finally {
+        // 隐藏加载动画
+        dashboardLoadingSpinner.style.display = 'none';
         hideLoading();
     }
 }
@@ -299,46 +475,139 @@ async function loadDashboard() {
  * 更新数据分布饼图
  */
 function updateDistributionChart() {
-    const ctx = document.getElementById('distributionChart').getContext('2d');
-    
-    // 检查是否已存在图表实例，如果有则销毁
-    if (window.distributionChart instanceof Chart) {
-        window.distributionChart.destroy();
-    }
-    
-    // 创建新的图表
-    window.distributionChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['用户', '视频', '问题', '回答', '反馈'],
-            datasets: [{
-                data: [
-                    tableStats.users || 0,
-                    tableStats.videos || 0,
-                    tableStats.questions || 0,
-                    tableStats.answers || 0,
-                    tableStats.feedbacks || 0
-                ],
-                backgroundColor: [
-                    '#4e73df',
-                    '#1cc88a',
-                    '#36b9cc',
-                    '#f6c23e',
-                    '#e74a3b'
-                ],
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            },
-            cutout: '70%'
+    try {
+        const canvas = document.getElementById('distributionChart');
+        const ctx = canvas.getContext('2d');
+        
+        // 确保销毁旧图表
+        if (distributionChart) {
+            distributionChart.destroy();
+            distributionChart = null;
         }
-    });
+        
+        // 清空Canvas
+        canvas.width = canvas.width;
+        
+        // 创建新的图表
+        distributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['用户', '视频', '问题', '回答', '反馈'],
+                datasets: [{
+                    data: [
+                        tableStats.users || 0,
+                        tableStats.videos || 0,
+                        tableStats.questions || 0,
+                        tableStats.answers || 0,
+                        tableStats.feedbacks || 0
+                    ],
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    title: {
+                        display: true,
+                        text: '数据分布'
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+        console.log('分布图表已更新');
+    } catch (error) {
+        console.error('更新分布图表失败:', error);
+    }
+}
+
+/**
+ * 更新数据增长趋势图
+ */
+function updateGrowthChart() {
+    try {
+        const canvas = document.getElementById('growthChart');
+        const ctx = canvas.getContext('2d');
+        
+        // 确保销毁旧图表
+        if (growthChart) {
+            growthChart.destroy();
+            growthChart = null;
+        }
+        
+        // 清空Canvas
+        canvas.width = canvas.width;
+        
+        // 模拟数据（实际项目中应从API获取）
+        const labels = ['一月', '二月', '三月', '四月', '五月', '六月'];
+        
+        // 创建新的图表
+        growthChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '用户',
+                        data: [0, 1, 3, 5, 6, 8],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '视频',
+                        data: [0, 4, 6, 8, 12, 17],
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '问题',
+                        data: [0, 1, 2, 3, 4, 6],
+                        borderColor: '#36b9cc',
+                        backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: '数据增长趋势'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        console.log('增长趋势图表已更新');
+    } catch (error) {
+        console.error('更新增长趋势图表失败:', error);
+    }
 }
 
 /**
@@ -383,65 +652,79 @@ async function loadTableData() {
     }
     
     try {
+        console.log(`加载表数据: ${currentTable}, 页码: ${currentPage}, 每页: ${pageSize}`);
         showLoading();
-        const success = await loadTableStructure();
         
-        if (!success) {
-            return;
+        const result = await apiRequest(`/db_admin/api/table/${currentTable}/data?limit=${pageSize}&offset=${currentPage * pageSize}`);
+        
+        if (!result.success) {
+            throw new Error(result.error || '加载表数据失败');
         }
         
-        const offset = currentPage * pageSize;
-        const result = await apiRequest(`/db_admin/api/table/${currentTable}/data?limit=${pageSize}&offset=${offset}`);
+        const data = result.data;
+        console.log(`表数据加载成功: ${currentTable}, 记录数: ${data.length}`);
         
-        if (result.success && result.data) {
-            const data = result.data;
+        // 清空表头和表体
+        tableHeader.innerHTML = '';
+        tableBody.innerHTML = '';
+        
+        if (data.length > 0) {
+            // 创建表头
+            const headerRow = document.createElement('tr');
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                headerRow.appendChild(th);
+            });
+            tableHeader.appendChild(headerRow);
             
-            // 清空表体
-            tableBody.innerHTML = '';
-            
-            if (data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">无数据</td></tr>';
-                rowCount.textContent = '0';
-                return;
-            }
-            
-            // 添加数据行
+            // 创建表体行
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 
                 Object.values(row).forEach(value => {
                     const td = document.createElement('td');
-                    
                     // 处理不同类型的值
                     if (value === null) {
                         td.innerHTML = '<span class="text-muted">NULL</span>';
                     } else if (typeof value === 'object') {
-                        td.textContent = JSON.stringify(value);
+                        try {
+                            td.textContent = JSON.stringify(value);
+                        } catch (e) {
+                            td.textContent = '[复杂对象]';
+                        }
+                    } else if (typeof value === 'boolean') {
+                        td.textContent = value ? '是' : '否';
+                    } else if (value.toString().length > 100) {
+                        td.innerHTML = `<span title="${value.toString().replace(/"/g, '&quot;')}">${value.toString().substring(0, 100)}...</span>`;
                     } else {
-                        td.textContent = value.toString();
+                        td.textContent = value;
                     }
-                    
                     tr.appendChild(td);
                 });
                 
                 tableBody.appendChild(tr);
             });
             
-            // 更新行数
-            rowCount.textContent = data.length;
+            // 更新行计数
+            rowCount.textContent = `显示 ${currentPage * pageSize + 1} 到 ${currentPage * pageSize + data.length}`;
             
-            // 更新分页按钮状态
-            prevPage.parentElement.classList.toggle('disabled', currentPage === 0);
-            nextPage.parentElement.classList.toggle('disabled', data.length < pageSize);
+            // 启用/禁用分页按钮
+            prevPage.disabled = currentPage === 0;
+            nextPage.disabled = data.length < pageSize;
         } else {
-            tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">加载失败</td></tr>';
-            rowCount.textContent = '0';
-            showAlert('加载表数据失败', 'error');
+            tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">无数据</td></tr>';
+            rowCount.textContent = '无记录';
+            
+            // 禁用分页按钮
+            prevPage.disabled = true;
+            nextPage.disabled = true;
         }
     } catch (error) {
-        tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">加载失败</td></tr>';
-        rowCount.textContent = '0';
+        tableBody.innerHTML = `<tr><td colspan="100%" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
+        rowCount.textContent = '加载失败';
         console.error('加载表数据错误:', error);
+        showAlert('加载表数据失败: ' + error.message, 'error');
     } finally {
         hideLoading();
     }
@@ -449,51 +732,83 @@ async function loadTableData() {
 
 /**
  * 加载表结构
- * @returns {boolean} - 加载是否成功
  */
 async function loadTableStructure() {
     if (!currentTable) {
-        return false;
+        return;
     }
     
     try {
+        console.log(`加载表结构: ${currentTable}`);
+        showLoading();
+        
         const result = await apiRequest(`/db_admin/api/table/${currentTable}/info`);
         
-        if (result.info) {
-            const info = result.info;
-            
-            // 更新表头
-            tableHeader.innerHTML = '';
-            info.forEach(column => {
-                const th = document.createElement('th');
-                th.textContent = column.Field;
-                tableHeader.appendChild(th);
-            });
-            
-            // 更新表结构面板
-            structureBody.innerHTML = '';
-            info.forEach(column => {
+        if (!result.success) {
+            throw new Error(result.error || '加载表结构失败');
+        }
+        
+        const structure = result.info;
+        console.log(`表结构加载成功: ${currentTable}`, structure);
+        
+        // 更新表名
+        structureTableName.textContent = currentTable;
+        
+        // 清空结构体
+        structureBody.innerHTML = '';
+        
+        if (structure && structure.length > 0) {
+            // 创建表结构行
+            structure.forEach(column => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${column.Field}</td>
-                    <td>${column.Type}</td>
-                    <td>${column.Null}</td>
-                    <td>${column.Key || '-'}</td>
-                    <td>${column.Default !== null ? column.Default : '<span class="text-muted">NULL</span>'}</td>
-                    <td>${column.Extra || '-'}</td>
-                `;
+                
+                // 字段名
+                const fieldTd = document.createElement('td');
+                fieldTd.textContent = column.Field;
+                tr.appendChild(fieldTd);
+                
+                // 类型
+                const typeTd = document.createElement('td');
+                typeTd.textContent = column.Type;
+                tr.appendChild(typeTd);
+                
+                // 可空
+                const nullableTd = document.createElement('td');
+                nullableTd.textContent = column.Null;
+                tr.appendChild(nullableTd);
+                
+                // 键
+                const keyTd = document.createElement('td');
+                keyTd.textContent = column.Key;
+                tr.appendChild(keyTd);
+                
+                // 默认值
+                const defaultTd = document.createElement('td');
+                defaultTd.textContent = column.Default !== null ? column.Default : '';
+                tr.appendChild(defaultTd);
+                
+                // 额外
+                const extraTd = document.createElement('td');
+                extraTd.textContent = column.Extra;
+                tr.appendChild(extraTd);
+                
                 structureBody.appendChild(tr);
             });
-            
-            return true;
         } else {
-            showAlert('加载表结构失败', 'error');
-            return false;
+            structureBody.innerHTML = '<tr><td colspan="6" class="text-center">无表结构信息</td></tr>';
         }
+        
+        // 显示结构面板
+        structurePanel.style.display = 'block';
     } catch (error) {
+        structureBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">加载失败: ${error.message}</td></tr>`;
         console.error('加载表结构错误:', error);
-        showAlert('加载表结构失败', 'error');
-        return false;
+        showAlert('加载表结构失败: ' + error.message, 'error');
+        
+        // 仍然显示面板，以便用户看到错误信息
+        structurePanel.style.display = 'block';
+    } finally {
+        hideLoading();
     }
 }
 

@@ -16,6 +16,29 @@ echo -e "${BLUE}==========================================${NC}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
+# 检查是否有旧的安全数据库管理工具进程，并终止它们
+echo -e "${YELLOW}检查并清理旧进程...${NC}"
+if pgrep -f "python.*safe_db_admin.py" > /dev/null; then
+    echo -e "${YELLOW}发现旧进程，正在终止...${NC}"
+    pkill -f "python.*safe_db_admin.py"
+    sleep 1
+    if pgrep -f "python.*safe_db_admin.py" > /dev/null; then
+        echo -e "${RED}警告: 无法终止所有旧进程，尝试强制终止${NC}"
+        pkill -9 -f "python.*safe_db_admin.py"
+        sleep 1
+    fi
+    echo -e "${GREEN}旧进程已清理${NC}"
+else
+    echo -e "${GREEN}未发现旧进程${NC}"
+fi
+
+# 清理旧日志文件
+echo -e "${YELLOW}清理旧日志文件...${NC}"
+if [ -f "logs/safe_db_admin.log" ]; then
+    echo "" > logs/safe_db_admin.log
+    echo -e "${GREEN}日志已清理${NC}"
+fi
+
 # 检查是否已激活虚拟环境
 if [[ "$VIRTUAL_ENV" == "" ]]; then
     echo -e "${YELLOW}正在激活虚拟环境...${NC}"
@@ -63,9 +86,6 @@ fi
 
 # 确保日志目录存在
 mkdir -p logs
-
-# 清空现有日志
-> logs/safe_db_admin.log
 
 # 启动日志实时显示（后台进程）
 echo -e "${GREEN}启动日志实时显示...${NC}"

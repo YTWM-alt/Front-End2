@@ -356,6 +356,23 @@
                         </div>
                         
                         <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stats-card answers h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                回答数量</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="answers-count">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bi bi-chat-dots-fill fa-2x text-gray-300" style="font-size: 2rem; color: #dddfeb;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card stats-card feedbacks h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -370,6 +387,16 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 仪表盘状态指示器 -->
+                    <div id="dashboard-status" class="alert alert-info mb-4" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status" id="dashboard-loading-spinner">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                            <div id="dashboard-status-message">正在加载仪表盘数据，请稍候...</div>
                         </div>
                     </div>
                     
