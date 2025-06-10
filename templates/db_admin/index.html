@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- 引入Chart.js -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.0.19/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="/static/db_admin/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <style>
         :root {
@@ -131,45 +132,63 @@
         /* 表格样式优化 */
         .table-responsive {
             max-height: 500px;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 1px solid #002FA7; /* 添加外边框，使用克莱因蓝 */
         }
         
         .table {
             width: 100%;
             margin-bottom: 0;
-            border-collapse: separate;
+            border-collapse: collapse; /* 改为collapse确保边框相邻 */
             border-spacing: 0;
             table-layout: fixed; /* 固定表格布局，保持列宽一致 */
         }
         
         .table th {
-            background-color: var(--table-header-bg);
-            color: var(--table-header-color);
+            background-color: #002FA7; /* 表头背景使用克莱因蓝 */
+            color: white;
             font-weight: 600;
             padding: 12px 15px;
             text-transform: uppercase;
             font-size: 0.85rem;
             letter-spacing: 0.5px;
-            white-space: nowrap;
             position: sticky;
             top: 0;
             z-index: 10;
-            border-bottom: 2px solid var(--primary-dark);
-            overflow: hidden;
-            text-overflow: ellipsis;
+            border: 1px solid #001C64; /* 表头边框颜色深一点 */
+            text-align: center;
         }
         
         .table td {
             padding: 10px 15px;
             vertical-align: middle;
-            border-top: var(--table-border);
+            border: 1px solid #CEDCFF; /* 内容单元格边框颜色浅一点 */
             color: #555;
-            word-break: break-word; /* 允许单词内换行，防止内容溢出 */
-            max-width: 300px; /* 限制单元格最大宽度 */
+            text-align: center;
+            background-color: white; /* 确保内容背景为白色 */
+        }
+        
+        /* 行的悬停效果 */
+        .table tbody tr:hover td {
+            background-color: #F0F4FF; /* 悬停时的背景色 */
+        }
+        
+        /* 奇数行背景色 */
+        .table tbody tr:nth-child(odd) td {
+            background-color: #F8FAFF; /* 奇数行浅蓝色背景 */
+        }
+        
+        /* 偶数行背景色 */
+        .table tbody tr:nth-child(even) td {
+            background-color: white; /* 偶数行白色背景 */
         }
         
         /* 确保表头与数据列对齐 */
         .table th, .table td {
             box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         /* 特殊处理长内容的列，比如描述、注释等 */
@@ -198,7 +217,6 @@
         /* 数字类列 */
         .col-count, .col-number, .col-amount, .col-price, .col-quantity {
             width: 100px;
-            text-align: right;
         }
         
         /* 用户名列 */
@@ -209,15 +227,87 @@
         /* 小图标列 */
         .col-icon, .col-symbol {
             width: 60px;
-            text-align: center;
         }
         
+        /* 表格容器样式 */
+        .table-wrapper {
+            position: relative;
+            overflow: auto;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 对于长文本，允许在悬停时显示完整内容 */
+        .truncated-text {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        /* 在悬停时展开显示 */
+        td:hover .truncated-text {
+            white-space: normal;
+            overflow: visible;
+            background-color: white;
+            position: relative;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        /* 表格间隔行样式优化 */
         .table-striped tbody tr:nth-of-type(odd) {
-            background-color: var(--table-stripe-bg);
+            background-color: rgba(0, 47, 167, 0.03);
         }
         
-        .table-hover tbody tr:hover {
-            background-color: var(--table-hover-bg);
+        /* 状态标签优化 */
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.35em 0.65em;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 60px;
+        }
+        
+        /* 分页样式优化 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: #002FA7;
+            border-color: #002FA7;
+        }
+        
+        .pagination .page-link {
+            color: #002FA7;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: #CEDCFF;
+        }
+        
+        /* 特殊的表格列样式 */
+        .empty-cell {
+            background-color: #f8f9fc !important;
+            border: 1px solid #CEDCFF !important;
+        }
+        
+        /* 表格下方的记录信息 */
+        .table-info {
+            padding: 10px 15px;
+            background-color: #f8f9fc;
+            border: 1px solid #CEDCFF;
+            border-top: none;
+            color: #666;
+            font-size: 0.9rem;
         }
         
         /* 字段类型颜色 */
@@ -308,20 +398,6 @@
             }
         }
         
-        /* 分页样式 */
-        .pagination {
-            margin-bottom: 0;
-        }
-        
-        .page-link {
-            color: var(--primary-color);
-        }
-        
-        .page-item.active .page-link {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-        }
-        
         /* 表单样式 */
         .form-control:focus {
             border-color: var(--secondary-color);
@@ -332,14 +408,6 @@
         .null-value {
             font-style: italic;
             color: #999;
-        }
-        
-        .truncated-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 300px;
-            cursor: pointer;
         }
         
         /* 表格行悬停效果 */

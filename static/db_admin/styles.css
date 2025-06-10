@@ -1,0 +1,240 @@
+/* 数据库管理界面样式 */
+
+/* 表格通用样式 */
+.table {
+    width: 100%;
+    table-layout: fixed !important; /* 强制使用固定表格布局 */
+    border-collapse: collapse;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* 表格列设置，使用colgroup确保列宽一致 */
+.table-fixed {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+/* 使用colgroup来确保列宽一致 */
+.table colgroup col {
+    width: auto !important;
+}
+
+/* 表头样式 */
+.table thead th {
+    background-color: #002FA7;
+    color: white;
+    border: 1px solid #001C64;
+    padding: 12px 15px;
+    text-align: center;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 50px; /* 固定表头高度 */
+}
+
+/* 表格单元格通用样式 */
+.table td {
+    border: 1px solid #CEDCFF;
+    padding: 10px 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    height: 46px; /* 固定单元格高度 */
+    line-height: 24px; /* 控制文本垂直居中 */
+}
+
+/* 表格行固定高度 */
+.table tr {
+    height: 46px !important; /* 强制固定行高 */
+}
+
+/* 表格行交替颜色 */
+.table tbody tr:nth-child(odd) {
+    background-color: #F8FAFF;
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: white;
+}
+
+/* 悬停效果 */
+.table tbody tr:hover {
+    background-color: #E6EEFF;
+}
+
+/* 列类型样式 - 使用百分比宽度实现自适应 */
+.col-id, .col-key {
+    width: 8% !important;
+}
+
+.col-date, .col-time {
+    width: 15% !important;
+}
+
+.col-type, .col-status {
+    width: 12% !important;
+}
+
+.col-boolean {
+    width: 10% !important;
+}
+
+.col-description, .col-text, .col-comment {
+    width: 25% !important;
+}
+
+.col-note {
+    width: 20% !important;
+}
+
+.col-count, .col-price, .col-quantity {
+    width: 10% !important;
+    text-align: right;
+}
+
+.col-name, .col-username {
+    width: 15% !important;
+    text-align: left;
+}
+
+.col-icon {
+    width: 6% !important;
+}
+
+/* 表格容器，支持横向滚动 */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 5px;
+    border: 1px solid #CEDCFF;
+}
+
+/* 空值和特殊样式 */
+.null-value {
+    color: #999;
+    font-style: italic;
+}
+
+/* 截断文本 */
+.truncated-text {
+    max-width: 100%;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 覆盖任何可能干扰表格布局的内联样式 */
+#data-table th[style*="width"],
+#data-table td[style*="width"],
+#structure-table th[style*="width"],
+#structure-table td[style*="width"],
+#query-results-container table th[style*="width"],
+#query-results-container table td[style*="width"] {
+    width: auto !important; /* 覆盖内联宽度样式 */
+}
+
+/* 数据库表结构表格特定样式 */
+#structure-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+#structure-table th, 
+#structure-table td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    height: 46px !important; /* 确保行高一致 */
+}
+
+/* 自定义查询结果表格特定样式 */
+#query-results-container table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+#query-results-container table th, 
+#query-results-container table td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    height: 46px !important; /* 确保行高一致 */
+}
+
+/* 防止动画效果影响表格布局 */
+.table tbody tr,
+.table td {
+    transform: none !important;
+    transition: background-color 0.2s ease !important;
+}
+
+.table tbody tr:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 修复表格头部和内容单元格的对齐问题 */
+.table colgroup col {
+    width: auto !important;
+}
+
+/* 表格工具栏 */
+.table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* 分页控件 */
+.pagination {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.pagination .page-link {
+    color: #002FA7;
+    border-color: #CEDCFF;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #002FA7;
+    border-color: #002FA7;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
+
+/* 表格面板样式 */
+.panel {
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.panel-header {
+    padding: 15px;
+    border-bottom: 1px solid #CEDCFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-body {
+    padding: 15px;
+}
+
+.panel-footer {
+    padding: 15px;
+    border-top: 1px solid #CEDCFF;
+} 

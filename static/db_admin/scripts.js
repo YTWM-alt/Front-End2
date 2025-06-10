@@ -61,6 +61,327 @@ const importData = document.getElementById('import-data');
 const loadingSpinner = document.getElementById('loading-spinner');
 const alertContainer = document.getElementById('alert-container');
 
+// 字段名中英文映射
+const fieldTranslations = {
+    // 基础字段
+    'id': '编号',
+    'user_id': '用户编号',
+    'video_id': '视频编号',
+    'question_id': '问题编号',
+    'answer_id': '回答编号',
+    'feedback_id': '反馈编号',
+    'name': '名称',
+    'title': '标题',
+    'description': '描述',
+    'content': '内容',
+    'text': '文本',
+    'username': '用户名',
+    'password': '密码',
+    'email': '邮箱',
+    'phone': '电话',
+    'address': '地址',
+    'status': '状态',
+    'type': '类型',
+    'created_at': '创建时间',
+    'updated_at': '更新时间',
+    'deleted_at': '删除时间',
+    'is_deleted': '是否删除',
+    'is_active': '是否激活',
+    'role': '角色',
+    'avatar': '头像',
+    'url': '链接',
+    'count': '数量',
+    'price': '价格',
+    'amount': '金额',
+    'quantity': '数量',
+    'total': '总计',
+    'comment': '评论',
+    'note': '备注',
+    
+    // 问题模块特定字段
+    'answer': '回答',
+    'priority': '优先级',
+    'view': '查看数',
+    'likes': '点赞数',
+    'dislikes': '不喜欢数',
+    'answer_time': '回答时间',
+    'question_time': '提问时间',
+    'create_time': '创建时间',
+    'update_time': '更新时间',
+    'delete_time': '删除时间',
+    'status_text': '状态文本',
+    'is_removed': '是否删除',
+    'is_featured': '是否精选',
+    'is_answered': '是否已回答',
+    'is_deleted': '是否删除',
+    'user_number': '用户编号',
+    'tags': '标签',
+    'category': '分类',
+    'origin': '来源',
+    'target': '目标',
+    'source': '来源',
+    'destination': '目的地',
+    'file': '文件',
+    'image': '图片',
+    'video': '视频',
+    'audio': '音频',
+    'document': '文档',
+    'size': '大小',
+    'duration': '时长',
+    'width': '宽度',
+    'height': '高度',
+    'format': '格式',
+    'extension': '扩展名',
+    'date': '日期',
+    'time': '时间',
+    'datetime': '日期时间',
+    'year': '年份',
+    'month': '月份',
+    'day': '日',
+    'hour': '小时',
+    'minute': '分钟',
+    'second': '秒',
+    'author': '作者',
+    'publisher': '发布者',
+    'editor': '编辑',
+    'creator': '创建者',
+    'owner': '所有者',
+    'admin': '管理员',
+    'moderator': '版主',
+    'group': '组',
+    'department': '部门',
+    'team': '团队',
+    'organization': '组织',
+    'company': '公司',
+    'location': '位置',
+    'position': '职位',
+    'gender': '性别',
+    'age': '年龄',
+    'birthday': '生日',
+    'nationality': '国籍',
+    'language': '语言',
+    'education': '教育',
+    'experience': '经验',
+    'skills': '技能',
+    'interests': '兴趣',
+    'hobbies': '爱好',
+    'color': '颜色',
+    'style': '样式',
+    'theme': '主题',
+    'version': '版本',
+    'level': '级别',
+    'score': '分数',
+    'rank': '排名',
+    'rating': '评分',
+    'votes': '投票',
+    'views': '查看数',
+    'downloads': '下载数',
+    'uploads': '上传数',
+    'shares': '分享数',
+    'comments': '评论数',
+    'reports': '举报数',
+    'stars': '星级',
+    'favorites': '收藏数',
+    'followers': '关注者',
+    'following': '关注的',
+    'friends': '朋友',
+    'contacts': '联系人',
+    'ip': 'IP地址',
+    'browser': '浏览器',
+    'device': '设备',
+    'platform': '平台',
+    'os': '操作系统',
+    'client': '客户端',
+    'server': '服务器',
+    'host': '主机',
+    'domain': '域名',
+    'port': '端口',
+    'protocol': '协议',
+    'api': 'API',
+    'endpoint': '端点',
+    'route': '路由',
+    'path': '路径',
+    'query': '查询',
+    'param': '参数',
+    'value': '值',
+    'default': '默认值',
+    'min': '最小值',
+    'max': '最大值',
+    'start': '开始',
+    'end': '结束',
+    'first': '第一个',
+    'last': '最后一个',
+    'next': '下一个',
+    'prev': '上一个',
+    'parent': '父级',
+    'child': '子级',
+    'root': '根',
+    'leaf': '叶子',
+    'node': '节点',
+    'code': '代码',
+    'data': '数据',
+    'info': '信息',
+    'message': '消息',
+    'subject': '主题',
+    'body': '正文',
+    'header': '头部',
+    'footer': '底部',
+    'sidebar': '侧边栏',
+    'menu': '菜单',
+    'button': '按钮',
+    'link': '链接',
+    'icon': '图标',
+    'logo': '标志',
+    'banner': '横幅',
+    'slogan': '口号',
+    'layout': '布局',
+    'config': '配置',
+    'setting': '设置',
+    'option': '选项',
+    'mode': '模式',
+    'state': '状态',
+    'action': '操作',
+    'method': '方法',
+    'function': '函数',
+    'class': '类',
+    'module': '模块',
+    'package': '包',
+    'library': '库',
+    'framework': '框架',
+    'template': '模板',
+    'schema': '架构',
+    'model': '模型',
+    'pattern': '模式',
+    'proxy': '代理',
+    'cache': '缓存',
+    'buffer': '缓冲区',
+    'queue': '队列',
+    'stack': '栈',
+    'heap': '堆',
+    'tree': '树',
+    'graph': '图',
+    'list': '列表',
+    'array': '数组',
+    'object': '对象',
+    'map': '映射',
+    'set': '集合',
+    'hash': '哈希',
+    'token': '令牌',
+    'key': '键',
+    'secret': '密钥',
+    'salt': '盐值',
+    'hash': '哈希值',
+    'encryption': '加密',
+    'decryption': '解密',
+    'signature': '签名',
+    'certificate': '证书',
+    'license': '许可证',
+    'copyright': '版权',
+    'trademark': '商标',
+    'patent': '专利',
+    'term': '术语',
+    'glossary': '词汇表',
+    'definition': '定义',
+    'reference': '参考',
+    'citation': '引用',
+    'source': '来源',
+    'target': '目标',
+    'input': '输入',
+    'output': '输出',
+    'error': '错误',
+    'warning': '警告',
+    'info': '信息',
+    'debug': '调试',
+    'trace': '跟踪',
+    'log': '日志',
+    'monitor': '监控',
+    'alert': '警报',
+    'notification': '通知',
+    'event': '事件',
+    'trigger': '触发器',
+    'hook': '钩子',
+    'callback': '回调',
+    'promise': '承诺',
+    'async': '异步',
+    'sync': '同步',
+    'parallel': '并行',
+    'serial': '串行',
+    'concurrent': '并发',
+    'sequential': '顺序',
+    'interval': '间隔',
+    'timeout': '超时',
+    'delay': '延迟',
+    'retry': '重试',
+    'attempt': '尝试',
+    'success': '成功',
+    'failure': '失败',
+    'complete': '完成',
+    'pending': '待处理',
+    'progress': '进度',
+    'task': '任务',
+    'job': '工作',
+    'schedule': '计划',
+    'calendar': '日历',
+    'reminder': '提醒',
+    'notification': '通知',
+    'alert': '警报',
+    'tip': '提示',
+    'hint': '提示',
+    'help': '帮助',
+    'support': '支持',
+    'service': '服务',
+    'product': '产品',
+    'feature': '功能',
+    'benefit': '益处',
+    'advantage': '优势',
+    'profit': '利润',
+    'loss': '损失',
+    'cost': '成本',
+    'price': '价格',
+    'fee': '费用',
+    'charge': '收费',
+    'payment': '支付',
+    'transaction': '交易',
+    'order': '订单',
+    'invoice': '发票',
+    'receipt': '收据',
+    'currency': '货币',
+    'tax': '税',
+    'discount': '折扣',
+    'coupon': '优惠券',
+    'promotion': '促销',
+    'campaign': '活动',
+    'advertisement': '广告',
+    'marketing': '营销',
+    'brand': '品牌',
+    'media': '媒体',
+    'press': '新闻',
+    'news': '新闻',
+    'article': '文章',
+    'blog': '博客',
+    'post': '帖子',
+    'forum': '论坛',
+    'topic': '话题',
+    'thread': '主题',
+    'reply': '回复',
+    'answer_count': '回答数',
+    'requestion': '重新提问',
+    'is_best': '是否最佳',
+    'is_resolve': '是否解决',
+    
+    // 特殊字段 - 在截图中看到的
+    'answer_数量': '回答数量',
+    'view_数量': '查看数量',
+    'deleted_删除': '已删除',
+    'priority': '优先级',
+    'comment_count': '评论数量',
+    'view_count': '查看数量',
+    'like_count': '点赞数量',
+    'file_path': '文件路径',
+    'file_size': '文件大小',
+    'thumbnail_path': '缩略图路径'
+};
+
 /**
  * 显示加载动画
  * @param {string} type - 加载类型 ('table' 或 'structure')
@@ -682,102 +1003,115 @@ async function loadTableData() {
         tableHeader.innerHTML = '';
         tableBody.innerHTML = '';
         
+        // 添加表格布局，不设置内联样式
+        dataTable.classList.add('table-fixed');
+        
         if (data.length > 0) {
             // 创建表头
             const headerRow = document.createElement('tr');
             const columns = Object.keys(data[0]);
             
-            columns.forEach(key => {
-                const th = document.createElement('th');
-                // 优化字段名显示，将下划线替换为空格，首字母大写
-                const displayName = key
-                    .replace(/_/g, ' ')
-                    .replace(/\b\w/g, l => l.toUpperCase());
-                th.textContent = displayName;
-                // 添加字段名提示
-                th.title = `字段名: ${key}`;
+            // 创建colgroup元素以控制列宽
+            const colgroup = document.createElement('colgroup');
+            dataTable.appendChild(colgroup);
+            
+            // 为每一列创建col元素
+            columns.forEach(col => {
+                const colElement = document.createElement('col');
                 
-                // 根据列名添加特定的CSS类
-                if (key === 'id' || key.endsWith('_id')) {
-                    th.classList.add('col-id');
-                } else if (key.includes('date') || key.includes('time') || key.includes('created') || key.includes('updated')) {
-                    th.classList.add('col-date');
-                } else if (key.includes('type')) {
-                    th.classList.add('col-type');
-                } else if (key.includes('status') || key.includes('state')) {
-                    th.classList.add('col-status');
-                } else if (key.includes('is_') || key === 'active' || key === 'enabled') {
-                    th.classList.add('col-boolean');
-                } else if (key.includes('description') || key.includes('desc')) {
-                    th.classList.add('col-description');
-                } else if (key.includes('content') || key.includes('text')) {
-                    th.classList.add('col-text');
-                } else if (key.includes('comment')) {
-                    th.classList.add('col-comment');
-                } else if (key.includes('note')) {
-                    th.classList.add('col-note');
-                } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
-                    th.classList.add('col-count');
-                } else if (key.includes('price') || key.includes('cost')) {
-                    th.classList.add('col-price');
-                } else if (key.includes('quantity') || key.includes('qty')) {
-                    th.classList.add('col-quantity');
-                } else if (key.includes('name') || key.includes('title')) {
-                    th.classList.add('col-name');
-                } else if (key.includes('username') || key.includes('user_name')) {
-                    th.classList.add('col-username');
-                } else if (key.includes('icon') || key.includes('symbol')) {
-                    th.classList.add('col-icon');
+                // 根据列类型添加CSS类
+                if (col === 'id' || col.endsWith('_id')) {
+                    colElement.classList.add('col-id');
+                } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
+                    colElement.classList.add('col-date');
+                } else if (col.includes('type')) {
+                    colElement.classList.add('col-type');
+                } else if (col.includes('status') || col.includes('state')) {
+                    colElement.classList.add('col-status');
+                } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
+                    colElement.classList.add('col-boolean');
+                } else if (col.includes('description') || col.includes('desc')) {
+                    colElement.classList.add('col-description');
+                } else if (col.includes('content') || col.includes('text')) {
+                    colElement.classList.add('col-text');
+                } else if (col.includes('comment')) {
+                    colElement.classList.add('col-comment');
+                } else if (col.includes('note')) {
+                    colElement.classList.add('col-note');
+                } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
+                    colElement.classList.add('col-count');
+                } else if (col.includes('price') || col.includes('cost')) {
+                    colElement.classList.add('col-price');
+                } else if (col.includes('quantity') || col.includes('qty')) {
+                    colElement.classList.add('col-quantity');
+                } else if (col.includes('name') || col.includes('title')) {
+                    colElement.classList.add('col-name');
+                } else if (col.includes('username') || col.includes('user_name')) {
+                    colElement.classList.add('col-username');
+                } else if (col.includes('icon') || col.includes('symbol')) {
+                    colElement.classList.add('col-icon');
                 }
+                
+                colgroup.appendChild(colElement);
+            });
+            
+            // 添加表头单元格
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                // 翻译字段名
+                const displayName = translateField(col);
+                th.textContent = displayName;
+                th.title = `字段名: ${col}`;
                 
                 headerRow.appendChild(th);
             });
             tableHeader.appendChild(headerRow);
             
             // 创建表体行
-            data.forEach(row => {
+            data.forEach((row, rowIndex) => {
                 const tr = document.createElement('tr');
+                const isOdd = rowIndex % 2 === 0;
                 
-                columns.forEach(key => {
-                    const value = row[key];
+                columns.forEach(col => {
+                    const value = row[col];
                     const td = document.createElement('td');
                     
-                    // 根据列名添加相同的CSS类，确保与表头对齐
-                    if (key === 'id' || key.endsWith('_id')) {
+                    // 添加与表头相同的CSS类
+                    if (col === 'id' || col.endsWith('_id')) {
                         td.classList.add('col-id');
-                    } else if (key.includes('date') || key.includes('time') || key.includes('created') || key.includes('updated')) {
+                    } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
                         td.classList.add('col-date');
-                    } else if (key.includes('type')) {
+                    } else if (col.includes('type')) {
                         td.classList.add('col-type');
-                    } else if (key.includes('status') || key.includes('state')) {
+                    } else if (col.includes('status') || col.includes('state')) {
                         td.classList.add('col-status');
-                    } else if (key.includes('is_') || key === 'active' || key === 'enabled') {
+                    } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
                         td.classList.add('col-boolean');
-                    } else if (key.includes('description') || key.includes('desc')) {
+                    } else if (col.includes('description') || col.includes('desc')) {
                         td.classList.add('col-description');
-                    } else if (key.includes('content') || key.includes('text')) {
+                    } else if (col.includes('content') || col.includes('text')) {
                         td.classList.add('col-text');
-                    } else if (key.includes('comment')) {
+                    } else if (col.includes('comment')) {
                         td.classList.add('col-comment');
-                    } else if (key.includes('note')) {
+                    } else if (col.includes('note')) {
                         td.classList.add('col-note');
-                    } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
+                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
                         td.classList.add('col-count');
-                    } else if (key.includes('price') || key.includes('cost')) {
+                    } else if (col.includes('price') || col.includes('cost')) {
                         td.classList.add('col-price');
-                    } else if (key.includes('quantity') || key.includes('qty')) {
+                    } else if (col.includes('quantity') || col.includes('qty')) {
                         td.classList.add('col-quantity');
-                    } else if (key.includes('name') || key.includes('title')) {
+                    } else if (col.includes('name') || col.includes('title')) {
                         td.classList.add('col-name');
-                    } else if (key.includes('username') || key.includes('user_name')) {
+                    } else if (col.includes('username') || col.includes('user_name')) {
                         td.classList.add('col-username');
-                    } else if (key.includes('icon') || key.includes('symbol')) {
+                    } else if (col.includes('icon') || col.includes('symbol')) {
                         td.classList.add('col-icon');
                     }
                     
                     // 根据数据类型和内容优化显示
                     if (value === null) {
-                        td.innerHTML = '<span class="null-value">NULL</span>';
+                        td.innerHTML = '<span class="null-value">空值</span>';
                     } else if (typeof value === 'object') {
                         try {
                             const jsonStr = JSON.stringify(value, null, 2);
@@ -790,64 +1124,78 @@ async function loadTableData() {
                         td.innerHTML = value ? 
                             '<span class="badge bg-success">是</span>' : 
                             '<span class="badge bg-danger">否</span>';
-                    } else if (key.includes('time') || key.includes('date') || key.includes('created') || key.includes('updated')) {
+                    } else if (col.includes('time') || col.includes('date') || col.includes('created') || col.includes('updated')) {
                         // 日期时间格式化
                         try {
                             const date = new Date(value);
                             if (!isNaN(date)) {
                                 td.innerHTML = `<span class="text-muted" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
                             } else {
-                                td.textContent = value;
+                                td.innerHTML = `<span>${value}</span>`;
                             }
                         } catch (e) {
-                            td.textContent = value;
+                            td.innerHTML = `<span>${value}</span>`;
                         }
-                    } else if (key === 'id' || key.endsWith('_id')) {
+                    } else if (col === 'id' || col.endsWith('_id')) {
                         // ID列格式化
-                        td.innerHTML = `<span class="badge" style="background-color: var(--primary-color);">${value}</span>`;
-                    } else if (key.includes('email')) {
+                        td.innerHTML = `<span class="badge" style="background-color: #002FA7;">${value}</span>`;
+                    } else if (col.includes('email')) {
                         // 邮箱格式化
                         td.innerHTML = `<a href="mailto:${value}" class="text-primary">${value}</a>`;
-                    } else if (key.includes('status')) {
+                    } else if (col.includes('status')) {
                         // 状态格式化
                         let statusClass = 'bg-secondary';
-                        if (/active|enabled|success|1|true/i.test(String(value))) {
+                        let statusText = value;
+                        
+                        // 状态文本翻译
+                        if (String(value).toLowerCase() === 'active') {
+                            statusText = '激活';
+                            statusClass = 'bg-success';
+                        } else if (String(value).toLowerCase() === 'inactive') {
+                            statusText = '未激活';
+                            statusClass = 'bg-danger';
+                        } else if (String(value).toLowerCase() === 'pending') {
+                            statusText = '待处理';
+                            statusClass = 'bg-warning';
+                        } else if (String(value).toLowerCase() === 'requestion') {
+                            statusText = '重新提问';
+                            statusClass = 'bg-info';
+                        } else if (/active|enabled|success|1|true/i.test(String(value))) {
                             statusClass = 'bg-success';
                         } else if (/inactive|disabled|failed|0|false/i.test(String(value))) {
                             statusClass = 'bg-danger';
                         } else if (/pending|waiting/i.test(String(value))) {
                             statusClass = 'bg-warning';
                         }
-                        td.innerHTML = `<span class="badge ${statusClass}">${value}</span>`;
-                    } else if (key.includes('url') || key.includes('link') || key.includes('website')) {
+                        
+                        td.innerHTML = `<span class="badge ${statusClass}">${statusText}</span>`;
+                    } else if (col.includes('url') || col.includes('link') || col.includes('website')) {
                         // URL格式化
                         if (String(value).startsWith('http')) {
                             td.innerHTML = `<a href="${value}" target="_blank" class="text-primary">${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</a>`;
                         } else {
-                            td.textContent = value;
+                            td.innerHTML = `<span>${value}</span>`;
                         }
-                    } else if (key.includes('count') || key.includes('num') || key.includes('amount') || key.includes('total')) {
+                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
                         // 数字格式化
                         if (!isNaN(value)) {
-                            td.textContent = Number(value).toLocaleString();
-                            td.style.fontWeight = 'bold';
+                            td.innerHTML = `<span style="font-weight: bold;">${Number(value).toLocaleString()}</span>`;
                         } else {
-                            td.textContent = value;
+                            td.innerHTML = `<span>${value}</span>`;
                         }
-                    } else if (key.includes('price') || key.includes('cost')) {
+                    } else if (col.includes('price') || col.includes('cost')) {
                         // 价格格式化
                         if (!isNaN(value)) {
-                            td.textContent = `¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                            td.style.fontWeight = 'bold';
+                            td.innerHTML = `<span style="font-weight: bold;">¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
                         } else {
-                            td.textContent = value;
+                            td.innerHTML = `<span>${value}</span>`;
                         }
                     } else if (String(value).length > 100) {
                         // 长文本截断显示
                         td.innerHTML = `<span class="truncated-text" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
                     } else {
                         // 默认显示
-                        td.textContent = value;
+                        td.innerHTML = `<span>${value}</span>`;
                     }
                     
                     tr.appendChild(td);
@@ -966,20 +1314,28 @@ async function loadTableStructure() {
         const columns = result.data;
         structureBody.innerHTML = '';
         
-        // 首先为表结构表格的表头添加特定的CSS类
-        const structureHeaders = document.querySelectorAll('#structure-table th');
-        if (structureHeaders.length > 0) {
-            structureHeaders[0].classList.add('col-key');    // 字段名称
-            structureHeaders[1].classList.add('col-type');   // 数据类型
-            structureHeaders[2].classList.add('col-boolean'); // 允许为空
-            structureHeaders[3].classList.add('col-key');    // 键类型
-            structureHeaders[4].classList.add('col-type');   // 默认值
-            structureHeaders[5].classList.add('col-type');   // 其他属性
-        }
+        // 添加表格类，不设置内联样式
+        const structureTable = document.getElementById('structure-table');
+        structureTable.classList.add('table-fixed');
+        
+        // 创建colgroup元素
+        const colgroup = document.createElement('colgroup');
+        
+        // 添加col元素
+        const columnTypes = ['col-key', 'col-type', 'col-boolean', 'col-key', 'col-type', 'col-type'];
+        columnTypes.forEach(type => {
+            const col = document.createElement('col');
+            col.classList.add(type);
+            colgroup.appendChild(col);
+        });
+        
+        // 将colgroup添加到表格
+        structureTable.appendChild(colgroup);
         
         if (columns.length > 0) {
-            columns.forEach(column => {
+            columns.forEach((column, rowIndex) => {
                 const tr = document.createElement('tr');
+                const isOdd = rowIndex % 2 === 0;
                 
                 // 字段名
                 const tdName = document.createElement('td');
@@ -987,13 +1343,13 @@ async function loadTableStructure() {
                 tdName.innerHTML = `<span class="field-key">${column.Field}</span>`;
                 tr.appendChild(tdName);
                 
-                // 字段类型
+                // 数据类型
                 const tdType = document.createElement('td');
                 tdType.classList.add('col-type');
                 tdType.innerHTML = `<span class="field-type">${column.Type}</span>`;
                 tr.appendChild(tdType);
                 
-                // 可为空
+                // 允许为空
                 const tdNull = document.createElement('td');
                 tdNull.classList.add('col-boolean');
                 if (column.Null === 'YES') {
@@ -1007,7 +1363,7 @@ async function loadTableStructure() {
                 const tdKey = document.createElement('td');
                 tdKey.classList.add('col-key');
                 if (column.Key === 'PRI') {
-                    tdKey.innerHTML = `<span class="badge" style="background-color: var(--primary-color);">主键</span>`;
+                    tdKey.innerHTML = `<span class="badge" style="background-color: #002FA7;">主键</span>`;
                 } else if (column.Key === 'UNI') {
                     tdKey.innerHTML = `<span class="badge bg-info">唯一</span>`;
                 } else if (column.Key === 'MUL') {
@@ -1021,18 +1377,20 @@ async function loadTableStructure() {
                 const tdDefault = document.createElement('td');
                 tdDefault.classList.add('col-type');
                 if (column.Default === null) {
-                    tdDefault.innerHTML = `<span class="null-value">NULL</span>`;
+                    tdDefault.innerHTML = `<span class="null-value">空值</span>`;
                 } else {
                     tdDefault.textContent = column.Default;
                 }
                 tr.appendChild(tdDefault);
                 
-                // 额外属性
+                // 其他属性
                 const tdExtra = document.createElement('td');
                 tdExtra.classList.add('col-type');
                 if (column.Extra) {
                     if (column.Extra.includes('auto_increment')) {
                         tdExtra.innerHTML = `<span class="badge bg-secondary">自动递增</span>`;
+                    } else if (column.Extra.includes('on update')) {
+                        tdExtra.innerHTML = `<span class="badge bg-info">更新时自动更新</span>`;
                     } else {
                         tdExtra.textContent = column.Extra;
                     }
@@ -1111,32 +1469,147 @@ async function executeCustomQuery(query) {
                 const columns = Object.keys(data[0]);
                 
                 let tableHtml = `
-                    <table class="table table-striped table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                ${columns.map(col => `<th>${col}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="table-responsive" style="border: 1px solid #002FA7;">
+                        <table class="table table-hover mb-0" style="table-layout: fixed; border-collapse: collapse;">
+                            <thead>
+                                <tr>
                 `;
                 
-                data.forEach(row => {
-                    tableHtml += '<tr>';
-                    columns.forEach(col => {
-                        const value = row[col];
-                        if (value === null) {
-                            tableHtml += '<td><span class="text-muted">NULL</span></td>';
-                        } else if (typeof value === 'object') {
-                            tableHtml += `<td>${JSON.stringify(value)}</td>`;
-                        } else {
-                            tableHtml += `<td>${value}</td>`;
-                        }
-                    });
-                    tableHtml += '</tr>';
+                // 创建表头，翻译字段名
+                columns.forEach(col => {
+                    const displayName = translateField(col);
+                    tableHtml += `<th style=\"background-color: #002FA7; color: white; border: 1px solid #001C64; text-align: center; padding: 12px 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${col}\">${displayName}</th>`;
                 });
                 
-                tableHtml += '</tbody></table>';
+                tableHtml += `
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                // 创建表格内容行
+                data.forEach((row, rowIndex) => {
+                    const isOdd = rowIndex % 2 === 0;
+                    const rowClass = isOdd ? "odd" : "even";
+                    tableHtml += `<tr class="${rowClass}">\n                    `;
+                    
+                    columns.forEach(col => {
+                        const value = row[col];
+                        
+                        // 根据数据类型优化显示
+                        let cellContent = '';
+                        if (value === null) {
+                            cellContent = '<span class="null-value">空值</span>';
+                        } else if (typeof value === 'object') {
+                            try {
+                                const jsonStr = JSON.stringify(value, null, 2);
+                                cellContent = `<span class="text-secondary truncated-text" title="${jsonStr.replace(/"/g, '&quot;')}">${jsonStr.substring(0, 50)}${jsonStr.length > 50 ? '...' : ''}</span>`;
+                            } catch (e) {
+                                cellContent = '<span class="badge bg-secondary">复杂对象</span>';
+                            }
+                        } else if (typeof value === 'boolean') {
+                            cellContent = value ? 
+                                '<span class="badge bg-success">是</span>' : 
+                                '<span class="badge bg-danger">否</span>';
+                        } else if (col.includes('time') || col.includes('date') || col.includes('created') || col.includes('updated')) {
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date)) {
+                                    cellContent = `<span class="text-muted" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
+                                } else {
+                                    cellContent = `<span>${value}</span>`;
+                                }
+                            } catch (e) {
+                                cellContent = `<span>${value}</span>`;
+                            }
+                        } else if (col === 'id' || col.endsWith('_id')) {
+                            cellContent = `<span class="badge" style="background-color: #002FA7;">${value}</span>`;
+                        } else if (String(value).length > 100) {
+                            cellContent = `<span class="truncated-text" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
+                        } else {
+                            cellContent = `<span>${value}</span>`;
+                        }
+                        
+                        // 添加单元格
+                        let cssClass = '';
+                        if (col === 'id' || col.endsWith('_id')) {
+                            cssClass = 'col-id';
+                        } else if (col.includes('date') || col.includes('time')) {
+                            cssClass = 'col-date';
+                        } else if (col.includes('type')) {
+                            cssClass = 'col-type';
+                        } else if (col.includes('status')) {
+                            cssClass = 'col-status';
+                        } else if (col.includes('boolean') || col.includes('is_')) {
+                            cssClass = 'col-boolean';
+                        } else if (col.includes('description') || col.includes('desc')) {
+                            cssClass = 'col-description';
+                        } else if (col.includes('name') || col.includes('title')) {
+                            cssClass = 'col-name';
+                        }
+                        
+                        tableHtml += `<td class="${cssClass}">${cellContent}</td>\n                    `;
+                    });
+                    
+                    tableHtml += `</tr>\n                `;
+                });
+                
+                tableHtml += `\n                            </tbody>\n                        </table>\n                    </div>\n                `;
+                
+                // 设置表格为固定布局
                 queryResultsContainer.innerHTML = tableHtml;
+                const resultTable = queryResultsContainer.querySelector('table');
+                if (resultTable) {
+                    resultTable.classList.add('table-fixed');
+                    
+                    // 创建colgroup元素
+                    const colgroup = document.createElement('colgroup');
+                    const columnsCount = columns.length;
+                    
+                    // 为每一列创建col元素
+                    columns.forEach(col => {
+                        const colElement = document.createElement('col');
+                        
+                        // 根据列类型添加CSS类
+                        if (col === 'id' || col.endsWith('_id')) {
+                            colElement.classList.add('col-id');
+                        } else if (col.includes('date') || col.includes('time') || col.includes('created') || col.includes('updated')) {
+                            colElement.classList.add('col-date');
+                        } else if (col.includes('type')) {
+                            colElement.classList.add('col-type');
+                        } else if (col.includes('status') || col.includes('state')) {
+                            colElement.classList.add('col-status');
+                        } else if (col.includes('is_') || col === 'active' || col === 'enabled') {
+                            colElement.classList.add('col-boolean');
+                        } else if (col.includes('description') || col.includes('desc')) {
+                            colElement.classList.add('col-description');
+                        } else if (col.includes('content') || col.includes('text')) {
+                            colElement.classList.add('col-text');
+                        } else if (col.includes('comment')) {
+                            colElement.classList.add('col-comment');
+                        } else if (col.includes('note')) {
+                            colElement.classList.add('col-note');
+                        } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
+                            colElement.classList.add('col-count');
+                        } else if (col.includes('price') || col.includes('cost')) {
+                            colElement.classList.add('col-price');
+                        } else if (col.includes('quantity') || col.includes('qty')) {
+                            colElement.classList.add('col-quantity');
+                        } else if (col.includes('name') || col.includes('title')) {
+                            colElement.classList.add('col-name');
+                        } else if (col.includes('username') || col.includes('user_name')) {
+                            colElement.classList.add('col-username');
+                        } else if (col.includes('icon') || col.includes('symbol')) {
+                            colElement.classList.add('col-icon');
+                        }
+                        
+                        colgroup.appendChild(colElement);
+                    });
+                    
+                    // 将colgroup插入到表格最前面
+                    resultTable.insertBefore(colgroup, resultTable.firstChild);
+                }
+                
                 queryRowCount.textContent = data.length;
             } else {
                 // 查询操作无结果
@@ -1171,6 +1644,36 @@ async function executeCustomQuery(query) {
     } finally {
         hideLoading();
     }
+}
+
+/**
+ * 翻译字段名称
+ * @param {string} fieldName - 要翻译的字段名
+ * @returns {string} - 翻译后的字段名
+ */
+function translateField(fieldName) {
+    // 如果有直接映射，使用映射
+    if (fieldTranslations[fieldName]) {
+        return fieldTranslations[fieldName];
+    }
+    
+    // 处理带下划线的复合字段名
+    if (fieldName.includes('_')) {
+        const parts = fieldName.split('_');
+        const translatedParts = parts.map(part => {
+            return fieldTranslations[part] || part;
+        });
+        
+        // 将翻译后的部分重新组合
+        return translatedParts.join('_')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    // 默认情况下，将下划线替换为空格，首字母大写
+    return fieldName
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
 }
 
 // 事件监听器
