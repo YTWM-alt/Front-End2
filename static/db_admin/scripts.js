@@ -1138,7 +1138,7 @@ async function loadTableData() {
                         }
                     } else if (col === 'id' || col.endsWith('_id')) {
                         // ID列格式化
-                        td.innerHTML = `<span class="badge" style="background-color: #002FA7;">${value}</span>`;
+                        td.innerHTML = `<span class="badge" style="background-color: #6495ED;">${value}</span>`;
                     } else if (col.includes('email')) {
                         // 邮箱格式化
                         td.innerHTML = `<a href="mailto:${value}" class="text-primary">${value}</a>`;
@@ -1363,7 +1363,7 @@ async function loadTableStructure() {
                 const tdKey = document.createElement('td');
                 tdKey.classList.add('col-key');
                 if (column.Key === 'PRI') {
-                    tdKey.innerHTML = `<span class="badge" style="background-color: #002FA7;">主键</span>`;
+                    tdKey.innerHTML = `<span class="badge" style="background-color: #6495ED;">主键</span>`;
                 } else if (column.Key === 'UNI') {
                     tdKey.innerHTML = `<span class="badge bg-info">唯一</span>`;
                 } else if (column.Key === 'MUL') {
@@ -1469,7 +1469,7 @@ async function executeCustomQuery(query) {
                 const columns = Object.keys(data[0]);
                 
                 let tableHtml = `
-                    <div class="table-responsive" style="border: 1px solid #002FA7;">
+                    <div class="table-responsive" style="border: 1px solid #6495ED;">
                         <table class="table table-hover mb-0" style="table-layout: fixed; border-collapse: collapse;">
                             <thead>
                                 <tr>
@@ -1478,7 +1478,7 @@ async function executeCustomQuery(query) {
                 // 创建表头，翻译字段名
                 columns.forEach(col => {
                     const displayName = translateField(col);
-                    tableHtml += `<th style=\"background-color: #002FA7; color: white; border: 1px solid #001C64; text-align: center; padding: 12px 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${col}\">${displayName}</th>`;
+                    tableHtml += `<th style=\"background-color: #6495ED; color: white; border: 1px solid #4F78C4; text-align: center; padding: 12px 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;\" title=\"${col}\">${displayName}</th>`;
                 });
                 
                 tableHtml += `
@@ -1523,7 +1523,7 @@ async function executeCustomQuery(query) {
                                 cellContent = `<span>${value}</span>`;
                             }
                         } else if (col === 'id' || col.endsWith('_id')) {
-                            cellContent = `<span class="badge" style="background-color: #002FA7;">${value}</span>`;
+                            cellContent = `<span class="badge" style="background-color: #6495ED;">${value}</span>`;
                         } else if (String(value).length > 100) {
                             cellContent = `<span class="truncated-text" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
                         } else {

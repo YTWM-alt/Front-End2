@@ -22,9 +22,9 @@
 
 /* 表头样式 */
 .table thead th {
-    background-color: #002FA7;
+    background-color: #6495ED;
     color: white;
-    border: 1px solid #001C64;
+    border: 1px solid #4F78C4;
     padding: 12px 15px;
     text-align: center;
     font-weight: 600;
@@ -39,7 +39,7 @@
 
 /* 表格单元格通用样式 */
 .table td {
-    border: 1px solid #CEDCFF;
+    border: 1px solid #E6EEFF;
     padding: 10px 15px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -110,7 +110,7 @@
 .table-responsive {
     overflow-x: auto;
     border-radius: 5px;
-    border: 1px solid #CEDCFF;
+    border: 1px solid #E6EEFF;
 }
 
 /* 空值和特殊样式 */
@@ -201,13 +201,13 @@
 }
 
 .pagination .page-link {
-    color: #002FA7;
-    border-color: #CEDCFF;
+    color: #6495ED;
+    border-color: #E6EEFF;
 }
 
 .pagination .page-item.active .page-link {
-    background-color: #002FA7;
-    border-color: #002FA7;
+    background-color: #6495ED;
+    border-color: #6495ED;
 }
 
 .pagination .page-item.disabled .page-link {
@@ -224,7 +224,7 @@
 
 .panel-header {
     padding: 15px;
-    border-bottom: 1px solid #CEDCFF;
+    border-bottom: 1px solid #E6EEFF;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -236,5 +236,5 @@
 
 .panel-footer {
     padding: 15px;
-    border-top: 1px solid #CEDCFF;
+    border-top: 1px solid #E6EEFF;
 } 
