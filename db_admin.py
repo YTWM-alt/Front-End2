@@ -287,19 +287,26 @@ class DatabaseManager:
     def execute_update(self, query, params=None):
         """执行更新SQL"""
         try:
-            if not self.connection or not self.connection.is_connected():
-                if not self.connect():
-                    return False, "数据库连接失败"
+            logger.info(f"执行更新: {query[:100]}..." if len(query) > 100 else f"执行更新: {query}")
             
-            self.cursor.execute(query, params or ())
-            self.connection.commit()
-            affected_rows = self.cursor.rowcount
-            logger.info(f"执行更新: {query[:100]}..., 影响行数: {affected_rows}")
-            return True, affected_rows
+            # 使用连接池直接执行更新，避免线程安全问题
+            connection = None
+            cursor = None
+            try:
+                connection = self.db_pool.get_connection()
+                cursor = connection.cursor()
+                cursor.execute(query, params or ())
+                connection.commit()
+                affected_rows = cursor.rowcount
+                logger.info(f"更新执行成功, 影响行数: {affected_rows}")
+                return True, affected_rows
+            finally:
+                if cursor:
+                    cursor.close()
+                if connection:
+                    connection.close()
         except Error as e:
             logger.error(f"执行更新出错: {e}, SQL: {query[:100]}...")
-            if self.connection:
-                self.connection.rollback()
             return False, str(e)
     
     def get_tables(self):
@@ -469,21 +476,38 @@ def get_table_info(table_name):
     """获取表结构API"""
     try:
         logger.info(f"请求表结构: {table_name}")
-        info = db_manager.get_table_info(table_name)
-        if not info:
-            logger.warning(f"表结构获取失败或为空: {table_name}")
-            return jsonify({"success": False, "error": "无法获取表结构或表不存在", "info": []})
-        
-        # 记录原始数据类型，帮助调试
-        sample = info[0] if info else {}
-        logger.info(f"表结构数据示例: {table_name}, 字段数: {len(sample)}, 类型: {[(k, type(v).__name__) for k, v in sample.items() if v is not None][:3]}")
-        
-        # 处理结果以确保JSON序列化
-        info = prepare_for_json(info)
-        return jsonify({"success": True, "info": info})
+        # 使用一个新的连接查询表结构，避免连接池问题
+        query = f"DESCRIBE `{table_name}`"
+        connection = None
+        cursor = None
+        try:
+            connection = db_manager.db_pool.get_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(query)
+            info = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            
+            if not info:
+                logger.warning(f"表结构获取失败或为空: {table_name}")
+                return jsonify({"success": False, "error": "无法获取表结构或表不存在", "data": []})
+            
+            # 记录原始数据类型，帮助调试
+            sample = info[0] if info else {}
+            logger.info(f"表结构数据示例: {table_name}, 字段数: {len(sample)}, 类型: {[(k, type(v).__name__) for k, v in sample.items() if v is not None][:3]}")
+            
+            # 准备JSON数据
+            return jsonify({"success": True, "data": prepare_for_json(info)})
+        except Exception as e:
+            logger.error(f"表结构查询错误: {str(e)}")
+            if cursor:
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close()
+            return jsonify({"success": False, "error": str(e), "data": []})
     except Exception as e:
-        logger.error(f"获取表结构时出错: {table_name}, 错误: {str(e)}", exc_info=True)
-        return jsonify({"success": False, "error": f"服务器错误: {str(e)}", "info": []})
+        logger.error(f"表结构获取失败: {str(e)}")
+        return jsonify({"success": False, "error": str(e), "data": []})
 
 @db_admin_bp.route('/api/table/<table_name>/data', methods=['GET'])
 @admin_required
@@ -547,6 +571,82 @@ def execute_query():
     except Exception as e:
         logger.error(f"执行查询时出错: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": f"服务器错误: {str(e)}", "result": []})
+
+@db_admin_bp.route('/api/update', methods=['POST'])
+@admin_required
+def update_cell():
+    """更新单元格值的API"""
+    try:
+        # 从请求中获取更新信息
+        data = request.json
+        logger.info(f"收到更新请求: {data}")
+        
+        table = data.get('table')
+        column = data.get('column')
+        value = data.get('value')
+        primary_key = data.get('primaryKey')
+        primary_key_value = data.get('primaryKeyValue')
+        
+        # 验证必要的参数
+        if not all([table, column, primary_key, primary_key_value is not None]):
+            logger.warning(f"更新请求缺少必要参数: table={table}, column={column}, primaryKey={primary_key}, primaryKeyValue={primary_key_value}")
+            return jsonify({'success': False, 'error': '缺少必要的参数'})
+        
+        # 构建更新SQL
+        update_sql = f"UPDATE `{table}` SET `{column}` = %s WHERE `{primary_key}` = %s"
+        params = (value, primary_key_value)
+        
+        # 记录操作
+        logger.info(f"正在更新表 {table} 中 {primary_key}={primary_key_value} 的行，列 {column} 的值为 {value}")
+        
+        # 执行更新
+        success, result = db_manager.execute_update(update_sql, params)
+        
+        if not success:
+            logger.error(f"更新失败: {result}")
+            return jsonify({'success': False, 'error': str(result)})
+        
+        logger.info(f"更新成功，影响行数: {result}")
+        return jsonify({
+            'success': True, 
+            'message': f'更新成功，影响行数: {result}', 
+            'affected_rows': result,
+            'table': table,
+            'column': column,
+            'primaryKey': primary_key,
+            'primaryKeyValue': primary_key_value,
+            'newValue': value
+        })
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"更新数据出错: {error_msg}", exc_info=True)
+        return jsonify({'success': False, 'error': error_msg})
+
+@db_admin_bp.route('/api/table/<table_name>/row/<int:row_index>', methods=['GET'])
+@admin_required
+def get_row_data(table_name, row_index):
+    """获取指定行数据的API"""
+    try:
+        # 获取表主键
+        table_info_query = f"SHOW KEYS FROM {table_name} WHERE Key_name = 'PRIMARY'"
+        success, primary_key_info = db_manager.execute_query(table_info_query)
+        
+        if not success or not primary_key_info:
+            return jsonify({'success': False, 'error': '无法获取表主键信息'})
+        
+        primary_key = primary_key_info[0]['Column_name']
+        
+        # 获取排序后的数据
+        query = f"SELECT * FROM {table_name} ORDER BY {primary_key} LIMIT {row_index}, 1"
+        success, rows = db_manager.execute_query(query)
+        
+        if not success or not rows:
+            return jsonify({'success': False, 'error': '未找到指定行'})
+        
+        return jsonify({'success': True, 'data': rows[0]})
+    except Exception as e:
+        logger.error(f"获取行数据出错: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
 
 def init_app(app):
     """将Blueprint注册到Flask应用"""

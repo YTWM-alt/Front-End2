@@ -1447,12 +1447,13 @@ async function loadTableStructure() {
         showLoading('structure');
         
         const result = await apiRequest(`/db_admin/api/table/${currentTable}/info`);
+        console.log('表结构API返回结果:', result);
         
         if (!result.success) {
             throw new Error(result.error || '加载表结构失败');
         }
         
-        const columns = result.data;
+        const columns = result.data || [];
         structureBody.innerHTML = '';
         
         // 获取表格元素
@@ -1563,6 +1564,7 @@ async function loadTableStructure() {
         
         structurePanel.style.display = 'block';
     } catch (error) {
+        console.error('加载表结构错误详情:', error);
         structureBody.innerHTML = `
             <tr>
                 <td colspan="6">
@@ -1573,7 +1575,6 @@ async function loadTableStructure() {
                     </div>
                 </td>
             </tr>`;
-        console.error('加载表结构错误:', error);
         showAlert('加载表结构失败: ' + error.message, 'error');
     } finally {
         hideLoading('structure');
@@ -1888,6 +1889,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 显示表结构按钮
     showTableStructure.addEventListener('click', (e) => {
         e.preventDefault();
+        structureTableName.textContent = currentTable; // 设置表名
+        loadTableStructure(); // 调用加载表结构的函数
         structurePanel.style.display = 'block';
     });
     
@@ -2110,7 +2113,7 @@ function escapeHtml(text) {
 }
 
 /**
- * 进入单元格编辑模式
+ * 打开弹出编辑窗口
  * @param {HTMLElement} cell - 要编辑的单元格
  * @param {string} tableName - 表名
  * @param {number} rowIndex - 行索引
@@ -2133,41 +2136,106 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
     };
     editingCellValue = value;
     
-    // 创建编辑框
-    const editor = document.createElement('div');
-    editor.className = 'cell-editor';
+    // 创建弹出窗口
+    const popup = document.createElement('div');
+    popup.className = 'edit-popup';
+    popup.id = 'edit-popup';
     
-    // 创建输入框
+    // 创建弹出窗口内容
+    const popupContent = document.createElement('div');
+    popupContent.className = 'edit-popup-content';
+    
+    // 创建弹出窗口头部
+    const popupHeader = document.createElement('div');
+    popupHeader.className = 'edit-popup-header';
+    
+    // 创建标题
+    const popupTitle = document.createElement('div');
+    popupTitle.className = 'edit-popup-title';
+    popupTitle.textContent = `编辑字段: ${translateField(columnName)}`;
+    
+    // 创建关闭按钮
+    const closeButton = document.createElement('button');
+    closeButton.className = 'edit-popup-close';
+    closeButton.innerHTML = '&times;';
+    closeButton.addEventListener('click', cancelCellEdit);
+    
+    // 组装头部
+    popupHeader.appendChild(popupTitle);
+    popupHeader.appendChild(closeButton);
+    
+    // 创建表单
+    const form = document.createElement('form');
+    form.className = 'edit-popup-form';
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        saveCellEdit();
+    };
+    
+    // 字段组
+    const formGroup = document.createElement('div');
+    formGroup.className = 'edit-form-group';
+    
+    // 标签
+    const label = document.createElement('label');
+    label.className = 'edit-form-label';
+    label.textContent = translateField(columnName);
+    label.htmlFor = 'edit-field-input';
+    
+    // 输入框
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'cell-edit-input';
+    input.id = 'edit-field-input';
+    input.className = 'edit-form-input';
     input.value = value !== null ? value : '';
     
-    // 创建按钮容器
-    const buttons = document.createElement('div');
-    buttons.className = 'edit-buttons';
+    // 字段信息
+    const fieldInfo = document.createElement('div');
+    fieldInfo.className = 'edit-form-info';
+    fieldInfo.textContent = `表: ${tableName}, 行索引: ${rowIndex}, 字段: ${columnName}`;
+    fieldInfo.style.fontSize = '12px';
+    fieldInfo.style.color = '#888';
+    fieldInfo.style.marginTop = '5px';
     
-    // 创建保存按钮
+    // 组装表单组
+    formGroup.appendChild(label);
+    formGroup.appendChild(input);
+    formGroup.appendChild(fieldInfo);
+    
+    // 按钮组
+    const buttonsGroup = document.createElement('div');
+    buttonsGroup.className = 'edit-popup-buttons';
+    
+    // 保存按钮
     const saveButton = document.createElement('button');
-    saveButton.className = 'edit-save-btn';
+    saveButton.type = 'submit';
+    saveButton.className = 'edit-popup-save-btn';
     saveButton.textContent = '保存';
-    saveButton.addEventListener('click', saveCellEdit);
     
-    // 创建取消按钮
+    // 取消按钮
     const cancelButton = document.createElement('button');
-    cancelButton.className = 'edit-cancel-btn';
+    cancelButton.type = 'button';
+    cancelButton.className = 'edit-popup-cancel-btn';
     cancelButton.textContent = '取消';
     cancelButton.addEventListener('click', cancelCellEdit);
     
-    // 组装DOM
-    buttons.appendChild(saveButton);
-    buttons.appendChild(cancelButton);
-    editor.appendChild(input);
-    editor.appendChild(buttons);
+    // 组装按钮组
+    buttonsGroup.appendChild(cancelButton);
+    buttonsGroup.appendChild(saveButton);
     
-    // 替换单元格内容
-    cell.innerHTML = '';
-    cell.appendChild(editor);
+    // 组装表单
+    form.appendChild(formGroup);
+    form.appendChild(buttonsGroup);
+    
+    // 组装内容
+    popupContent.appendChild(popupHeader);
+    popupContent.appendChild(form);
+    
+    // 组装弹出窗口
+    popup.appendChild(popupContent);
+    
+    // 添加到页面
+    document.body.appendChild(popup);
     
     // 聚焦到输入框
     input.focus();
@@ -2180,23 +2248,50 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
             cancelCellEdit();
         }
     });
+    
+    // 点击弹出窗口背景关闭
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            cancelCellEdit();
+        }
+    });
 }
 
 /**
  * 保存单元格编辑
  */
 async function saveCellEdit() {
-    if (!currentEditCell) return;
+    if (!currentEditCell) {
+        console.error('无法保存：currentEditCell为空');
+        return;
+    }
     
-    const input = currentEditCell.cell.querySelector('.cell-edit-input');
+    // 获取弹出窗口
+    const popup = document.getElementById('edit-popup');
+    if (!popup) {
+        console.error('无法保存：找不到编辑弹窗');
+        return;
+    }
+    
+    // 获取输入框中的新值
+    const input = popup.querySelector('#edit-field-input');
     const newValue = input.value;
+    
+    // 显示表单提交状态
+    const saveButton = popup.querySelector('.edit-popup-save-btn');
+    const cancelButton = popup.querySelector('.edit-popup-cancel-btn');
+    if (saveButton) saveButton.disabled = true;
+    if (saveButton) saveButton.textContent = '保存中...';
+    if (cancelButton) cancelButton.disabled = true;
     
     try {
         // 显示加载指示器
         showLoading();
+        console.log(`开始保存编辑: 表=${currentEditCell.tableName}, 行=${currentEditCell.rowIndex}, 列=${currentEditCell.columnName}, 新值=${newValue}`);
         
         // 获取主键信息以构建更新条件
         const result = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/info`);
+        console.log('获取表结构结果:', result);
         
         if (!result.success) {
             throw new Error(result.error || '获取表结构失败');
@@ -2204,19 +2299,22 @@ async function saveCellEdit() {
         
         // 查找主键
         const primaryKeyColumn = result.data.find(col => col.Key === 'PRI');
+        console.log('主键列:', primaryKeyColumn);
         
         if (!primaryKeyColumn) {
             throw new Error('无法更新：找不到主键');
         }
         
         // 获取当前行的主键值
-        const row = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/row/${currentEditCell.rowIndex}`);
+        const rowResult = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/row/${currentEditCell.rowIndex}`);
+        console.log('获取行数据结果:', rowResult);
         
-        if (!row.success || !row.data) {
+        if (!rowResult.success || !rowResult.data) {
             throw new Error('获取行数据失败');
         }
         
-        const primaryKeyValue = row.data[primaryKeyColumn.Field];
+        const primaryKeyValue = rowResult.data[primaryKeyColumn.Field];
+        console.log('主键值:', primaryKeyValue);
         
         if (primaryKeyValue === undefined) {
             throw new Error('无法获取主键值');
@@ -2231,28 +2329,61 @@ async function saveCellEdit() {
             primaryKeyValue: primaryKeyValue
         };
         
+        console.log('发送更新请求:', updateData);
+        
         // 发送更新请求
         const updateResult = await apiRequest('/db_admin/api/update', 'POST', updateData);
+        console.log('更新结果:', updateResult);
         
         if (!updateResult.success) {
             throw new Error(updateResult.error || '更新失败');
         }
         
         // 更新成功，更新单元格显示
-        showAlert('数据已更新', 'success');
+        showAlert(`数据已更新: ${updateResult.message || ''}`, 'success');
         
         // 使用与原单元格相同的显示逻辑，但更新值
-        // 这里简单处理，实际应该根据列类型格式化显示
         currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
         currentEditCell.cell.classList.add('updated-cell');
+        
+        // 在控制台显示单元格状态
+        console.log('更新后的单元格:', currentEditCell.cell);
+        
+        // 移除弹出窗口
+        document.body.removeChild(popup);
         
         // 重置编辑状态
         currentEditCell = null;
         editingCellValue = null;
         
+        // 刷新表格数据以确保显示最新数据
+        setTimeout(() => {
+            console.log('刷新表格数据...');
+            loadTableData();
+        }, 1000);
+        
     } catch (error) {
+        console.error('保存单元格编辑错误详情:', error);
+        alert(`更新失败: ${error.message}`); // 使用原生alert确保用户看到错误
         showAlert(`更新失败: ${error.message}`, 'error');
-        console.error('保存单元格编辑错误:', error);
+        
+        // 恢复按钮状态
+        if (saveButton) {
+            saveButton.disabled = false;
+            saveButton.textContent = '保存';
+        }
+        if (cancelButton) cancelButton.disabled = false;
+        
+        // 如果是连接或服务器错误，保留弹窗让用户重试
+        if (error.message.includes('连接') || error.message.includes('网络') || error.message.includes('服务器')) {
+            // 不关闭弹窗，让用户可以重试
+            return;
+        }
+        
+        // 其他错误则关闭弹窗
+        if (popup && popup.parentNode) {
+            document.body.removeChild(popup);
+        }
         
         // 恢复原始内容
         if (currentEditCell) {
@@ -2270,6 +2401,12 @@ async function saveCellEdit() {
  */
 function cancelCellEdit() {
     if (!currentEditCell) return;
+    
+    // 获取并移除弹出窗口
+    const popup = document.getElementById('edit-popup');
+    if (popup) {
+        document.body.removeChild(popup);
+    }
     
     // 恢复原始内容
     currentEditCell.cell.innerHTML = currentEditCell.originalHTML;
