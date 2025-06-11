@@ -10,7 +10,7 @@
 // 配置常量
 // =============================================================================
 
-const API_BASE_URL = 'http://localhost:3002'; // 统一使用3002端口
+const API_BASE_URL = 'http://localhost:3003'; // 统一使用3003端口
 
 const API_ENDPOINTS = {
   // 健康检查
@@ -21,8 +21,8 @@ const API_ENDPOINTS = {
   GET_QUESTIONS: '/api/questions',
   
   // 视频管理
-  GET_VIDEOS: '/api/videos',
-  DELETE_VIDEO: '/api/videos',
+  GET_VIDEOS: '/videos',
+  DELETE_VIDEO: '/videos',
   PROCESS_AI_VIDEO: '/api/process-ai-video',
   
   // 头像管理
@@ -39,7 +39,8 @@ const API_ENDPOINTS = {
 
 const STATIC_ENDPOINTS = {
   VIDEOS: '/videos',
-  AVATARS: '/avatars'
+  AVATARS: '/avatars',
+  IMAGES: '/images'
 };
 
 // =============================================================================

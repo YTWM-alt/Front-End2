@@ -1,5 +1,5 @@
 // API配置
-const API_BASE_URL = 'http://localhost:3002/api';
+const API_BASE_URL = 'http://localhost:3003/api';
 
 /**
  * 发送HTTP请求的通用函数

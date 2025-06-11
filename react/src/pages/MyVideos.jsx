@@ -52,105 +52,114 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
     try {
       setLoading(true);
       console.log('🔍 开始获取视频列表...');
-      
-      // 添加缓存破坏参数和强制刷新
       const timestamp = new Date().getTime();
-      const response = await fetch(`http://localhost:3002/api/videos?_t=${timestamp}`, {
-        cache: 'no-cache',
+      const url = `http://localhost:3003/videos/?_t=${timestamp}`;
+      console.log('🌐 请求URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',  // 改回omit，因为我们不需要发送cookie
         headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-      
+
+      console.log('📥 收到响应:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('❌ 响应错误:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
+
+      const text = await response.text();
+      console.log('📄 原始响应文本:', text);
       
-      const data = await response.json();
-      console.log('📥 服务器响应:', data);
-      
-      if (data.success && data.videos) {
-        console.log(`✅ 成功从API获取 ${data.videos.length} 个视频文件`);
-        console.log('📊 API返回的真实数据:');
-        data.videos.forEach((video, index) => {
-          const createdDate = new Date(video.createdTime);
-          console.log(`📹 视频 ${index + 1}: ${video.filename}`);
-          console.log(`   📏 文件大小: ${video.sizeFormatted} (${video.size} bytes)`);
-          console.log(`   ⏱️  视频时长: ${video.durationFormatted} (${video.duration}秒)`);
-          console.log(`   📅 创建时间: ${createdDate.toLocaleString('zh-CN')}`);
-          console.log(`   🏷️  分类: ${video.sizeCategory}, ${video.durationCategory}`);
-        });
-        setVideos(data.videos);
-        showLocalNotification(`✅ 已从API获取 ${data.videos.length} 个视频的真实信息`, 'success');
+      let data;
+      try {
+        // 如果响应内容为空，返回空数组
+        if (!text.trim()) {
+          console.log('⚠️ 响应内容为空，使用空数组');
+          data = { success: true, videos: [], count: 0 };
+        } else {
+          data = JSON.parse(text);
+          console.log('✅ 解析后的数据:', data);
+        }
+      } catch (e) {
+        console.error('❌ JSON解析错误:', e);
+        throw new Error('响应格式错误');
+      }
+
+      // 检查data.success或自行构造一个有效的响应
+      if ((data.success && Array.isArray(data.videos)) || Array.isArray(data)) {
+        // 兼容两种可能的数据结构
+        const videoArray = Array.isArray(data.videos) ? data.videos : (Array.isArray(data) ? data : []);
+        console.log('✅ 获取视频列表成功:', videoArray);
+        const processedVideos = videoArray.map(video => ({
+          ...video,
+          sizeCategory: getSizeCategory(video.file_size || 0),
+          durationCategory: getDurationCategory(video.duration || 0),
+          createdTime: video.upload_time || new Date().toISOString(),
+          modifiedTime: video.upload_time || new Date().toISOString(),
+          // 添加默认值
+          title: video.title || '未命名视频',
+          description: video.description || '',
+          format: video.format || 'mp4',
+          status: video.status || 'ready',
+          file_size: video.file_size || 0,
+          duration: video.duration || 0
+        }));
+        console.log('🎥 处理后的视频列表:', processedVideos);
+        setVideos(processedVideos);
+        setFilteredVideos(processedVideos);
+        showLocalNotification(`成功加载 ${processedVideos.length} 个视频`, 'success');
       } else {
-        console.log('⚠️ 服务器返回空数据，使用测试数据');
-        loadTestData();
+        console.warn('⚠️ 数据格式异常，使用空数组:', data);
+        setVideos([]);
+        setFilteredVideos([]);
+        showLocalNotification('没有找到视频', 'info');
       }
     } catch (error) {
       console.error('❌ 获取视频列表错误:', error);
-      showLocalNotification(`❌ API连接失败: ${error.message}，使用测试数据`, 'error');
-      loadTestData();
+      setNotification({
+        type: 'error',
+        message: `获取视频列表失败: ${error.message}`
+      });
+      setVideos([]);
+      setFilteredVideos([]);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * 加载测试数据（当后端连接失败时使用）
+   * 获取文件大小分类
    */
-  const loadTestData = () => {
-    console.log('🔄 加载测试数据...');
-    const testVideos = [
-      {
-        id: '2025-06-07_17-33-24',
-        filename: '2025-06-07_17-33-24.mp4',
-        title: '2025-06-07_17-33-24',
-        size: 3677954, // 实际文件大小: 3,677,954 字节
-        sizeFormatted: '3.51 MB',
-        duration: 10, // 真实视频时长: 10.2秒
-        durationFormatted: '0:10',
-        createdTime: new Date('2025-06-07T09:56:50.898Z'), // 实际创建时间: 2025/6/7 17:56:50
-        modifiedTime: new Date('2025-06-07T09:56:25.552Z'), // 实际修改时间: 2025/6/7 17:56:25
-        url: '/videos/2025-06-07_17-33-24.mp4',
-        extension: '.mp4',
-        sizeCategory: 'small', // < 50MB
-        durationCategory: 'short' // < 5分钟
-      },
-      {
-        id: '2025-06-08_17-33-24',
-        filename: '2025-06-08_17-33-24.mp4',
-        title: '2025-06-08_17-33-24',
-        size: 310278655, // 实际文件大小: 310,278,655 字节
-        sizeFormatted: '295.90 MB',
-        duration: 205, // 真实视频时长: 205.0秒
-        durationFormatted: '3:25',
-        createdTime: new Date('2025-06-07T09:00:04.635Z'), // 实际创建时间: 2025/6/7 17:00:04  
-        modifiedTime: new Date('2025-02-16T12:21:43.000Z'), // 实际修改时间: 2025/2/16 20:21:43
-        url: '/videos/2025-06-08_17-33-24.mp4',
-        extension: '.mp4',
-        sizeCategory: 'large', // 200-500MB
-        durationCategory: 'short' // 实际上只有3分多钟，是短视频
-      }
-    ];
-    
-    console.log('📊 测试视频数据:', testVideos.map(v => ({
-      filename: v.filename,
-      size: v.sizeFormatted,
-      duration: v.durationFormatted,
-      created: v.createdTime.toLocaleString('zh-CN'),
-      modified: v.modifiedTime.toLocaleString('zh-CN'),
-      sizeCategory: v.sizeCategory,
-      durationCategory: v.durationCategory
-    })));
-    
-    setVideos(testVideos);
-    showLocalNotification('已加载测试数据（与实际文件信息同步）', 'info');
+  const getSizeCategory = (size) => {
+    const sizeInMB = size / (1024 * 1024);
+    if (sizeInMB < 10) return 'small';
+    if (sizeInMB < 50) return 'medium';
+    if (sizeInMB < 200) return 'large';
+    return 'xlarge';
   };
 
-
-
-
+  /**
+   * 获取视频时长分类
+   */
+  const getDurationCategory = (duration) => {
+    if (duration < 60) return 'short';
+    if (duration < 300) return 'medium';
+    if (duration < 900) return 'long';
+    return 'xlong';
+  };
 
   /**
    * 应用筛选条件
@@ -440,8 +449,6 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
     const index = Math.abs(video.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % defaultThumbnails.length;
     return defaultThumbnails[index];
   };
-
-
 
   return (
     <div className="MyVideos">
@@ -782,21 +789,73 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
             )}
           </div>
 
-
-
-
-
-
-
           {/* 加载状态 */}
           {loading && (
             <div style={{
               textAlign: 'center',
               padding: '40px',
-              color: 'var(--gray)'
+              color: 'var(--gray)',
+              background: 'white',
+              borderRadius: '15px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
+              margin: '20px 0'
             }}>
               <i className="fas fa-spinner fa-spin" style={{ fontSize: '24px', marginBottom: '10px' }}></i>
               <p>正在加载视频列表...</p>
+            </div>
+          )}
+
+          {/* 错误状态 */}
+          {!loading && notification?.type === 'error' && (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px',
+              color: 'var(--danger)',
+              background: 'white',
+              borderRadius: '15px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
+              margin: '20px 0'
+            }}>
+              <i className="fas fa-exclamation-circle" style={{ fontSize: '24px', marginBottom: '10px' }}></i>
+              <p>{notification.message}</p>
+              <button
+                onClick={fetchVideos}
+                style={{
+                  background: 'var(--primary)',
+                  color: 'white',
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  marginTop: '15px',
+                  cursor: 'pointer'
+                }}
+              >
+                <i className="fas fa-sync-alt" style={{ marginRight: '5px' }}></i>
+                重试
+              </button>
+            </div>
+          )}
+
+          {/* 空状态 */}
+          {!loading && !notification?.type === 'error' && videos.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              background: 'white',
+              borderRadius: '15px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
+              margin: '20px 0'
+            }}>
+              <i className="fas fa-film" style={{ 
+                fontSize: '64px', 
+                color: 'var(--gray)', 
+                opacity: 0.5,
+                marginBottom: '20px'
+              }}></i>
+              <h3 style={{ color: 'var(--dark)', marginBottom: '15px' }}>暂无视频</h3>
+              <p style={{ color: 'var(--gray)', marginBottom: '25px' }}>
+                您还没有上传任何视频
+              </p>
             </div>
           )}
 
@@ -1081,47 +1140,6 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
               ))}
             </div>
           )}
-
-
-
-          {/* 无视频文件状态 */}
-          {!loading && videos.length === 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: '60px 20px',
-              background: 'white',
-              borderRadius: '15px',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.1)'
-            }}>
-              <i className="fas fa-video-slash" style={{ 
-                fontSize: '64px', 
-                color: 'var(--gray)', 
-                opacity: 0.5,
-                marginBottom: '20px'
-              }}></i>
-              <h3 style={{ color: 'var(--dark)', marginBottom: '15px' }}>暂无视频文件</h3>
-              <p style={{ color: 'var(--gray)', marginBottom: '25px' }}>
-                请将视频文件放入 video/ 文件夹中，然后刷新页面
-              </p>
-              <button
-                onClick={fetchVideos}
-                style={{
-                  background: 'var(--primary)',
-                  color: 'white',
-                  padding: '12px 30px',
-                  borderRadius: '30px',
-                  border: 'none',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <i className="fas fa-refresh" style={{ marginRight: '8px' }}></i>
-                刷新列表
-              </button>
-            </div>
-          )}
         </main>
 
         {/* 页脚 */}
@@ -1203,7 +1221,7 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
                 maxHeight: '70vh',
                 background: '#000'
               }}
-              src={`http://localhost:3002/videos/${encodeURIComponent(selectedVideo.filename)}`}
+              src={`http://localhost:3003/videos/${encodeURIComponent(selectedVideo.filename)}`}
             >
               您的浏览器不支持视频播放。
             </video>

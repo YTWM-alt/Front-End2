@@ -53,5 +53,5 @@
   ],
   "author": "AI Platform Team",
   "license": "MIT",
-  "proxy": "http://localhost:3002"
+  "proxy": "http://localhost:3003"
 } 

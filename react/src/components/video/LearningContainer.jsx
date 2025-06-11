@@ -46,7 +46,7 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
       
       if (result.success) {
         // 构建完整的视频URL
-        const fullVideoUrl = `http://localhost:3002${result.videoUrl}`;
+        const fullVideoUrl = `http://localhost:3003${result.videoUrl}`;
         
         // 更新视频数据
         setVideoData(prev => ({

@@ -129,7 +129,7 @@ const Profile = ({
   const fetchVideoCount = async () => {
     try {
       console.log('🔄 开始获取视频数量...');
-      const response = await fetch('http://localhost:3002/api/videos');
+      const response = await fetch('http://localhost:3003/api/videos');
       console.log('📡 API响应状态:', response.status, response.ok);
       
       if (response.ok) {
@@ -173,7 +173,7 @@ const Profile = ({
       }
 
       console.log('🔄 开始获取用户详细信息...', userEmail);
-      const response = await fetch(`http://localhost:3002/api/user/${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`http://localhost:3003/api/user/${encodeURIComponent(userEmail)}`);
       console.log('📡 用户信息API响应状态:', response.status, response.ok);
       
       if (response.ok) {
@@ -235,7 +235,7 @@ const Profile = ({
       }
 
       console.log('🔄 开始获取用户头像...', userEmail);
-      const response = await fetch(`http://localhost:3002/api/avatars/${encodeURIComponent(userEmail)}`);
+      const response = await fetch(`http://localhost:3003/api/avatars/${encodeURIComponent(userEmail)}`);
       console.log('📡 头像API响应状态:', response.status, response.ok);
       
       if (response.ok) {
@@ -247,7 +247,7 @@ const Profile = ({
           
           // 如果是相对路径，转换为完整URL
           if (avatarUrl.startsWith('/')) {
-            avatarUrl = `http://localhost:3002${avatarUrl}`;
+            avatarUrl = `http://localhost:3003${avatarUrl}`;
           }
           
           console.log('🖼️ 找到用户头像:', avatarUrl);
@@ -434,7 +434,7 @@ const Profile = ({
       });
 
       // 调用后端API上传头像
-      const response = await fetch('http://localhost:3002/api/upload-avatar', {
+      const response = await fetch('http://localhost:3003/api/upload-avatar', {
         method: 'POST',
         body: formData
       });
@@ -447,7 +447,7 @@ const Profile = ({
 
         if (result.success) {
           // 构建完整的头像URL
-          const fullAvatarUrl = `http://localhost:3002${result.data.avatarUrl}`;
+          const fullAvatarUrl = `http://localhost:3003${result.data.avatarUrl}`;
           
           console.log('🖼️ 新头像URL:', fullAvatarUrl);
           

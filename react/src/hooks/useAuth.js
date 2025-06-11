@@ -114,7 +114,7 @@ export const useAuth = () => {
 
       // 调用真实的登录API
       console.log('🔄 正在调用登录API...');
-      const response = await fetch('http://localhost:3002/api/auth/login', {
+      const response = await fetch('http://localhost:3003/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -144,7 +144,7 @@ export const useAuth = () => {
       // 处理头像URL，确保是完整路径
       let avatar = result.user?.avatar || user.avatar;
       if (avatar && avatar.startsWith('/')) {
-        avatar = `http://localhost:3002${avatar}`;
+        avatar = `http://localhost:3003${avatar}`;
       }
 
       // 更新用户状态
@@ -224,7 +224,7 @@ export const useAuth = () => {
 
       // 调用真实的注册API
       console.log('🔄 正在调用注册API...');
-      const response = await fetch('http://localhost:3002/api/auth/register', {
+      const response = await fetch('http://localhost:3003/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
