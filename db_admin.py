@@ -10,7 +10,7 @@ import logging
 import mysql.connector
 from mysql.connector import Error, pooling
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, Blueprint
+from flask import Flask, render_template, request, jsonify, Blueprint, send_from_directory
 from functools import wraps
 import pandas as pd
 import threading
@@ -123,7 +123,7 @@ class DatabasePool:
         """从连接池获取连接"""
         if not self.initialized:
             if not self.config:
-                self.config = config  # 使用全局配置
+                self.config = DEFAULT_DB_CONFIG  # 使用默认配置而不是未定义的全局变量
             # 如果未初始化，尝试初始化
             if not self.initialize(self.config):
                 raise ValueError("连接池未初始化")
@@ -581,11 +581,19 @@ def update_cell():
         data = request.json
         logger.info(f"收到更新请求: {data}")
         
+        # 检查请求数据是否为空
+        if not data:
+            logger.warning("更新请求数据为空")
+            return jsonify({'success': False, 'error': '请求数据为空'})
+            
         table = data.get('table')
         column = data.get('column')
         value = data.get('value')
         primary_key = data.get('primaryKey')
         primary_key_value = data.get('primaryKeyValue')
+        
+        # 记录请求参数
+        logger.info(f"更新请求参数: table={table}, column={column}, value={value}, primaryKey={primary_key}, primaryKeyValue={primary_key_value}")
         
         # 验证必要的参数
         if not all([table, column, primary_key, primary_key_value is not None]):
@@ -598,6 +606,7 @@ def update_cell():
         
         # 记录操作
         logger.info(f"正在更新表 {table} 中 {primary_key}={primary_key_value} 的行，列 {column} 的值为 {value}")
+        logger.info(f"执行SQL: {update_sql}, 参数: {params}")
         
         # 执行更新
         success, result = db_manager.execute_update(update_sql, params)
@@ -647,6 +656,35 @@ def get_row_data(table_name, row_index):
     except Exception as e:
         logger.error(f"获取行数据出错: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
+
+@db_admin_bp.route('/videos/<path:filename>')
+def serve_video(filename):
+    """提供视频文件"""
+    try:
+        # 视频存储路径
+        video_dir = os.path.join('database', 'video')
+        logger.info(f"请求视频文件: {filename}")
+        
+        # 确保文件存在
+        if not os.path.isfile(os.path.join(video_dir, filename)):
+            logger.warning(f"视频文件不存在: {filename}")
+            return jsonify({"success": False, "error": "视频文件不存在"}), 404
+        
+        # 更新视频观看次数
+        try:
+            update_sql = "UPDATE videos SET view_count = view_count + 1 WHERE file_path LIKE %s"
+            db_manager.execute_update(update_sql, (f"%{filename}%",))
+            logger.info(f"已更新视频观看次数: {filename}")
+        except Exception as e:
+            logger.error(f"更新视频观看次数失败: {str(e)}")
+        
+        # 返回视频文件
+        response = send_from_directory(video_dir, filename, as_attachment=False)
+        response.headers['Content-Type'] = 'video/mp4'
+        return response
+    except Exception as e:
+        logger.error(f"提供视频文件出错: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 def init_app(app):
     """将Blueprint注册到Flask应用"""

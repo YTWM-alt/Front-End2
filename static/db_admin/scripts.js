@@ -434,49 +434,87 @@ function showAlert(message, type = 'info') {
 
 /**
  * 发送API请求
- * @param {string} url - API URL
- * @param {string} method - 请求方法 (GET, POST)
- * @param {object} data - 请求数据
+ * @param {string} url - 请求URL
+ * @param {string} method - 请求方法（GET, POST等）
+ * @param {object} data - 请求数据（可选）
  * @returns {Promise} - 响应Promise
  */
 async function apiRequest(url, method = 'GET', data = null) {
     showLoading();
     try {
+        // 处理URL前缀
+        // 如果URL不是以/db_admin开头，添加前缀
+        if (!url.startsWith('/db_admin')) {
+            url = '/db_admin' + url;
+        }
+        
         console.log(`发送请求: ${method} ${url}`, data);
         const options = {
             method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Basic ' + btoa('admin:admin123')
-            }
+            },
+            // 确保fetch不会随意跟随重定向
+            redirect: 'follow',
+            // 确保fetch发送凭据
+            credentials: 'same-origin'
         };
 
         if (data && method !== 'GET') {
             options.body = JSON.stringify(data);
         }
 
-        const response = await fetch(url, options);
-        let result;
-        
         try {
-            result = await response.json();
-        } catch (jsonError) {
-            console.error('JSON解析错误:', jsonError);
-            throw new Error(`无法解析响应: ${jsonError.message}`);
-        }
+            // 超时处理
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+            options.signal = controller.signal;
+            
+            const response = await fetch(url, options);
+            clearTimeout(timeoutId); // 清除超时
+            
+            // 检查响应状态
+            if (!response.ok) {
+                console.error(`HTTP错误: ${response.status} ${response.statusText}`);
+                // 尝试解析错误响应
+                let errorMessage;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorData.message || `HTTP错误: ${response.status}`;
+                } catch (e) {
+                    errorMessage = `HTTP错误: ${response.status} ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            // 解析响应JSON
+            let result;
+            try {
+                result = await response.json();
+            } catch (jsonError) {
+                console.error('JSON解析错误:', jsonError);
+                throw new Error(`无法解析响应: ${jsonError.message}`);
+            }
 
-        console.log(`收到响应: ${url}`, result);
-        
-        if (!response.ok) {
-            throw new Error(result.message || '请求失败');
-        }
+            console.log(`收到响应: ${url}`, result);
+            
+            // 检查结果中是否有错误信息
+            if (result.error) {
+                throw new Error(result.error);
+            }
 
-        // 检查结果中是否有错误信息
-        if (result.error) {
-            throw new Error(result.error);
+            return result;
+        } catch (fetchError) {
+            // 处理请求中断的特殊情况
+            if (fetchError.name === 'AbortError') {
+                console.error('请求超时');
+                throw new Error('请求超时，请稍后重试');
+            }
+            
+            console.error('Fetch错误:', fetchError);
+            throw fetchError;
         }
-
-        return result;
     } catch (error) {
         console.error('API请求错误:', error);
         showAlert(`请求失败: ${error.message}`, 'error');
@@ -493,7 +531,7 @@ async function apiRequest(url, method = 'GET', data = null) {
 async function connectDatabase(config) {
     try {
         showLoading();
-        const result = await apiRequest('/db_admin/api/connect', 'POST', config);
+        const result = await apiRequest('/api/connect', 'POST', config);
         
         if (result.success) {
             isConnected = true;
@@ -520,7 +558,7 @@ async function connectDatabase(config) {
 async function disconnectDatabase() {
     try {
         showLoading();
-        const result = await apiRequest('/db_admin/api/disconnect', 'POST');
+        const result = await apiRequest('/api/disconnect', 'POST');
         
         if (result.success) {
             isConnected = false;
@@ -553,7 +591,7 @@ async function disconnectDatabase() {
  */
 async function loadConfig() {
     try {
-        const config = await apiRequest('/db_admin/api/config');
+        const config = await apiRequest('/api/config');
         
         document.getElementById('host').value = config.host || 'localhost';
         document.getElementById('port').value = config.port || 3306;
@@ -575,7 +613,7 @@ async function loadTables() {
     
     try {
         showLoading();
-        const result = await apiRequest('/db_admin/api/tables');
+        const result = await apiRequest('/api/tables');
         
         if (result.tables && result.tables.length > 0) {
             // 清空表列表
@@ -629,23 +667,42 @@ async function loadDashboard() {
         dashboardLoadingSpinner.style.display = 'inline-block';
         dashboardStatus.style.display = 'block';
         
-        // 先销毁现有图表，避免Canvas重用错误
+        // 预先销毁图表，避免Canvas重用错误
+        // 先通过Chart.js内置方法检查并销毁
+        const distributionCanvas = document.getElementById('distributionChart');
+        const growthCanvas = document.getElementById('growthChart');
+        
+        if (distributionCanvas) {
+            const distributionChartInstance = Chart.getChart(distributionCanvas);
+            if (distributionChartInstance) {
+                distributionChartInstance.destroy();
+            }
+        }
+        
+        if (growthCanvas) {
+            const growthChartInstance = Chart.getChart(growthCanvas);
+            if (growthChartInstance) {
+                growthChartInstance.destroy();
+            }
+        }
+        
+        // 再确保全局变量被清理
         if (distributionChart) {
             try {
                 distributionChart.destroy();
-                distributionChart = null;
             } catch (e) {
                 console.warn('销毁分布图表失败:', e);
             }
+            distributionChart = null;
         }
         
         if (growthChart) {
             try {
                 growthChart.destroy();
-                growthChart = null;
             } catch (e) {
                 console.warn('销毁增长图表失败:', e);
             }
+            growthChart = null;
         }
         
         // 使用串行请求而非并行请求，避免连接池耗尽
@@ -654,7 +711,7 @@ async function loadDashboard() {
         
         // 1. 加载用户数量
         try {
-            const usersResult = await apiRequest('/db_admin/api/query', 'POST', { 
+            const usersResult = await apiRequest('/api/query', 'POST', { 
                 query: 'SELECT COUNT(*) as count FROM users' 
             });
             if (usersResult.success) {
@@ -677,7 +734,7 @@ async function loadDashboard() {
         
         // 2. 加载视频数量
         try {
-            const videosResult = await apiRequest('/db_admin/api/query', 'POST', { 
+            const videosResult = await apiRequest('/api/query', 'POST', { 
                 query: 'SELECT COUNT(*) as count FROM videos' 
             });
             if (videosResult.success) {
@@ -700,7 +757,7 @@ async function loadDashboard() {
         
         // 3. 加载问题数量
         try {
-            const questionsResult = await apiRequest('/db_admin/api/query', 'POST', { 
+            const questionsResult = await apiRequest('/api/query', 'POST', { 
                 query: 'SELECT COUNT(*) as count FROM questions' 
             });
             if (questionsResult.success) {
@@ -723,7 +780,7 @@ async function loadDashboard() {
         
         // 4. 加载回答数量
         try {
-            const answersResult = await apiRequest('/db_admin/api/query', 'POST', { 
+            const answersResult = await apiRequest('/api/query', 'POST', { 
                 query: 'SELECT COUNT(*) as count FROM answers' 
             });
             if (answersResult.success) {
@@ -746,7 +803,7 @@ async function loadDashboard() {
         
         // 5. 加载反馈数量
         try {
-            const feedbacksResult = await apiRequest('/db_admin/api/query', 'POST', { 
+            const feedbacksResult = await apiRequest('/api/query', 'POST', { 
                 query: 'SELECT COUNT(*) as count FROM feedbacks' 
             });
             if (feedbacksResult.success) {
@@ -767,7 +824,7 @@ async function loadDashboard() {
             failedCount++;
         }
         
-        // 更新图表
+        // 更新图表 - 增加延迟确保DOM更新和旧图表完全清除
         setTimeout(() => {
             try {
                 updateDistributionChart();
@@ -776,7 +833,7 @@ async function loadDashboard() {
             } catch (error) {
                 console.error('更新图表失败:', error);
             }
-        }, 100);
+        }, 200); // 增加延迟时间
         
         console.log('仪表盘加载完成');
         
@@ -815,16 +872,22 @@ async function loadDashboard() {
 function updateDistributionChart() {
     try {
         const canvas = document.getElementById('distributionChart');
-        const ctx = canvas.getContext('2d');
         
-        // 确保销毁旧图表
+        // 首先检查并清理Canvas上的旧Chart
+        const chartInstance = Chart.getChart(canvas);
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        
+        // 再次确保distributionChart全局变量被清理
         if (distributionChart) {
             distributionChart.destroy();
             distributionChart = null;
         }
         
-        // 清空Canvas
-        canvas.width = canvas.width;
+        // 确保Canvas干净
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         // 创建新的图表
         distributionChart = new Chart(ctx, {
@@ -875,16 +938,22 @@ function updateDistributionChart() {
 function updateGrowthChart() {
     try {
         const canvas = document.getElementById('growthChart');
-        const ctx = canvas.getContext('2d');
         
-        // 确保销毁旧图表
+        // 首先检查并清理Canvas上的旧Chart
+        const chartInstance = Chart.getChart(canvas);
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        
+        // 再次确保growthChart全局变量被清理
         if (growthChart) {
             growthChart.destroy();
             growthChart = null;
         }
         
-        // 清空Canvas
-        canvas.width = canvas.width;
+        // 确保Canvas干净
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         // 模拟数据（实际项目中应从API获取）
         const labels = ['一月', '二月', '三月', '四月', '五月', '六月'];
@@ -993,7 +1062,7 @@ async function loadTableData() {
         console.log(`加载表数据: ${currentTable}, 页码: ${currentPage}, 每页: ${pageSize}`);
         showLoading('table');
         
-        const result = await apiRequest(`/db_admin/api/table/${currentTable}/data?limit=${pageSize}&offset=${currentPage * pageSize}`);
+        const result = await apiRequest(`/api/table/${currentTable}/data?limit=${pageSize}&offset=${currentPage * pageSize}`);
         
         if (!result.success) {
             throw new Error(result.error || '加载表数据失败');
@@ -1190,20 +1259,18 @@ async function loadTableData() {
                     
                     columns.forEach((col, index) => {
                         const value = row[col];
-                        const td = document.createElement('td');
-                        td.dataset.column = col; // 添加列名，用于编辑功能
-                        
-                        // 如果表格处于编辑模式，添加可编辑类
-                        if (dataTable.classList.contains('edit-mode')) {
-                            td.classList.add('editable-cell');
-                            td.addEventListener('click', cellClickHandler);
-                        }
+                        // 使用createTableCell函数创建单元格
+                        const td = createTableCell(currentTable, col, value, dataTable.classList.contains('edit-mode'));
                         
                         // 使用与表头和colgroup相同的类名保持宽度一致
                         if (columnClassMap[index]) {
-                            td.className = columnClassMap[index];
+                            // 保留已有的类
+                            const existingClasses = td.className.split(' ').filter(c => c !== '');
+                            td.className = columnClassMap[index] + (existingClasses.length > 0 ? ' ' + existingClasses.join(' ') : '');
+                            
+                            // 为编辑模式添加事件监听器
                             if (dataTable.classList.contains('edit-mode')) {
-                                td.classList.add('editable-cell');
+                                td.addEventListener('click', cellClickHandler);
                             }
                             
                             // 与col元素和表头保持相同的宽度
@@ -1249,95 +1316,6 @@ async function loadTableData() {
                                 td.style.maxWidth = '150px';
                             }
                         }
-                    
-                    // 根据数据类型和内容优化显示，确保内容不会撑开单元格
-                    if (value === null) {
-                        td.innerHTML = '<span class="null-value fixed-width-content">空值</span>';
-                    } else if (typeof value === 'object') {
-                        try {
-                            const jsonStr = JSON.stringify(value, null, 2);
-                            td.innerHTML = `<span class="text-secondary truncated-text fixed-width-content" 
-                                title="${jsonStr.replace(/"/g, '&quot;')}">${jsonStr.substring(0, 50)}${jsonStr.length > 50 ? '...' : ''}</span>`;
-                        } catch (e) {
-                            td.innerHTML = '<span class="badge bg-secondary fixed-width-content">复杂对象</span>';
-                        }
-                    } else if (typeof value === 'boolean') {
-                        td.innerHTML = value ? 
-                            '<span class="badge bg-success fixed-width-content">是</span>' : 
-                            '<span class="badge bg-danger fixed-width-content">否</span>';
-                    } else if (col.includes('time') || col.includes('date') || col.includes('created') || col.includes('updated')) {
-                        // 日期时间格式化
-                        try {
-                            const date = new Date(value);
-                            if (!isNaN(date)) {
-                                td.innerHTML = `<span class="text-muted fixed-width-content" title="${date.toLocaleString()}">${date.toLocaleString()}</span>`;
-                            } else {
-                                td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                            }
-                        } catch (e) {
-                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                        }
-                    } else if (col === 'id' || col.endsWith('_id')) {
-                        // ID列格式化
-                        td.innerHTML = `<span class="badge fixed-width-content" style="background-color: #6495ED;">${value}</span>`;
-                    } else if (col.includes('email')) {
-                        // 邮箱格式化
-                        td.innerHTML = `<a href="mailto:${value}" class="text-primary fixed-width-content">${value}</a>`;
-                    } else if (col.includes('status')) {
-                        // 状态格式化
-                        let statusClass = 'bg-secondary';
-                        let statusText = value;
-                        
-                        // 状态文本翻译
-                        if (String(value).toLowerCase() === 'active') {
-                            statusText = '激活';
-                            statusClass = 'bg-success';
-                        } else if (String(value).toLowerCase() === 'inactive') {
-                            statusText = '未激活';
-                            statusClass = 'bg-danger';
-                        } else if (String(value).toLowerCase() === 'pending') {
-                            statusText = '待处理';
-                            statusClass = 'bg-warning';
-                        } else if (String(value).toLowerCase() === 'requestion') {
-                            statusText = '重新提问';
-                            statusClass = 'bg-info';
-                        } else if (/active|enabled|success|1|true/i.test(String(value))) {
-                            statusClass = 'bg-success';
-                        } else if (/inactive|disabled|failed|0|false/i.test(String(value))) {
-                            statusClass = 'bg-danger';
-                        } else if (/pending|waiting/i.test(String(value))) {
-                            statusClass = 'bg-warning';
-                        }
-                        
-                        td.innerHTML = `<span class="badge ${statusClass} fixed-width-content">${statusText}</span>`;
-                    } else if (col.includes('url') || col.includes('link') || col.includes('website')) {
-                        // URL格式化
-                        if (String(value).startsWith('http')) {
-                            td.innerHTML = `<a href="${value}" target="_blank" class="text-primary fixed-width-content">${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</a>`;
-                        } else {
-                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                        }
-                    } else if (col.includes('count') || col.includes('num') || col.includes('amount') || col.includes('total')) {
-                        // 数字格式化
-                        if (!isNaN(value)) {
-                            td.innerHTML = `<span class="fixed-width-content" style="font-weight: bold;">${Number(value).toLocaleString()}</span>`;
-                        } else {
-                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                        }
-                    } else if (col.includes('price') || col.includes('cost')) {
-                        // 价格格式化
-                        if (!isNaN(value)) {
-                            td.innerHTML = `<span class="fixed-width-content" style="font-weight: bold;">¥${Number(value).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
-                        } else {
-                            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                        }
-                    } else if (String(value).length > 100) {
-                        // 长文本截断显示
-                        td.innerHTML = `<span class="truncated-text fixed-width-content" title="${String(value).replace(/"/g, '&quot;')}">${String(value).substring(0, 100)}...</span>`;
-                    } else {
-                        // 默认显示
-                        td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
-                    }
                     
                     tr.appendChild(td);
                 });
@@ -1446,7 +1424,7 @@ async function loadTableStructure() {
         console.log(`加载表结构: ${currentTable}`);
         showLoading('structure');
         
-        const result = await apiRequest(`/db_admin/api/table/${currentTable}/info`);
+        const result = await apiRequest(`/api/table/${currentTable}/info`);
         console.log('表结构API返回结果:', result);
         
         if (!result.success) {
@@ -1593,7 +1571,7 @@ async function executeCustomQuery(query) {
     
     try {
         showLoading();
-        const result = await apiRequest('/db_admin/api/query', 'POST', { query });
+        const result = await apiRequest('/api/query', 'POST', { query });
         
         // 显示查询结果面板
         queryResultsPanel.style.display = 'block';
@@ -1817,6 +1795,58 @@ function translateField(fieldName) {
         .replace(/\b\w/g, l => l.toUpperCase());
 }
 
+/**
+ * 判断字符串是否为日期格式
+ * @param {string} str - 要检查的字符串
+ * @returns {boolean} - 是否为日期格式
+ */
+function isDateString(str) {
+    if (typeof str !== 'string') return false;
+    
+    // 检查常见的日期格式
+    const dateRegexes = [
+        /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+        /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, // YYYY-MM-DD HH:MM:SS
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, // ISO格式 YYYY-MM-DDThh:mm:ss
+        /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
+        /^\d{4}年\d{1,2}月\d{1,2}日/ // 中文日期格式
+    ];
+    
+    // 检查是否符合任一日期格式
+    if (dateRegexes.some(regex => regex.test(str))) {
+        return true;
+    }
+    
+    // 尝试用Date对象解析
+    const d = new Date(str);
+    return !isNaN(d) && d.toString() !== 'Invalid Date';
+}
+
+/**
+ * 格式化日期时间
+ * @param {string|Date} dateTime - 日期时间
+ * @returns {string} - 格式化后的日期时间
+ */
+function formatDateTime(dateTime) {
+    if (!dateTime) return '';
+    
+    try {
+        const date = new Date(dateTime);
+        if (isNaN(date)) return dateTime;
+        
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (e) {
+        return dateTime;
+    }
+}
+
 // 事件监听器
 document.addEventListener('DOMContentLoaded', () => {
     // 加载配置
@@ -1993,7 +2023,7 @@ function hideAllPanels() {
 async function exportTableData(tableName) {
     try {
         showLoading();
-        const result = await apiRequest(`/db_admin/api/table/${tableName}/data?limit=10000&offset=0`);
+        const result = await apiRequest(`/api/table/${tableName}/data?limit=10000&offset=0`);
         
         if (result.success && result.data && result.data.length > 0) {
             const data = result.data;
@@ -2164,13 +2194,21 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
     popupHeader.appendChild(popupTitle);
     popupHeader.appendChild(closeButton);
     
-    // 创建表单
+    // 创建表单 - 改进表单创建和提交方式
     const form = document.createElement('form');
     form.className = 'edit-popup-form';
-    form.onsubmit = (e) => {
-        e.preventDefault();
-        saveCellEdit();
-    };
+    // 重要：设置表单提交方式，确保它不会直接提交
+    form.setAttribute('action', 'javascript:void(0);');
+    form.setAttribute('method', 'post');
+    form.setAttribute('novalidate', 'true');
+    
+    // 表单提交事件处理
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // 阻止默认提交
+        e.stopPropagation(); // 阻止事件冒泡
+        saveCellEdit(); // 调用保存函数
+        return false; // 确保不会实际提交
+    });
     
     // 字段组
     const formGroup = document.createElement('div');
@@ -2186,6 +2224,7 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
     const input = document.createElement('input');
     input.type = 'text';
     input.id = 'edit-field-input';
+    input.name = 'edit-field-input'; // 添加name属性
     input.className = 'edit-form-input';
     input.value = value !== null ? value : '';
     
@@ -2243,7 +2282,8 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
     // 添加键盘事件监听
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
-            saveCellEdit();
+            // 触发表单提交而不是直接调用saveCellEdit
+            form.dispatchEvent(new Event('submit'));
         } else if (e.key === 'Escape') {
             cancelCellEdit();
         }
@@ -2263,6 +2303,7 @@ function enterCellEditMode(cell, tableName, rowIndex, columnName, value) {
 async function saveCellEdit() {
     if (!currentEditCell) {
         console.error('无法保存：currentEditCell为空');
+        showAlert('编辑失败：无法获取编辑单元格信息', 'error');
         return;
     }
     
@@ -2270,12 +2311,27 @@ async function saveCellEdit() {
     const popup = document.getElementById('edit-popup');
     if (!popup) {
         console.error('无法保存：找不到编辑弹窗');
+        showAlert('编辑失败：找不到编辑窗口', 'error');
         return;
     }
     
     // 获取输入框中的新值
     const input = popup.querySelector('#edit-field-input');
+    if (!input) {
+        console.error('无法保存：找不到输入框');
+        showAlert('编辑失败：找不到输入框', 'error');
+        return;
+    }
+    
     const newValue = input.value;
+    
+    console.log('保存编辑 - 当前单元格信息:', {
+        tableName: currentEditCell.tableName,
+        rowIndex: currentEditCell.rowIndex,
+        columnName: currentEditCell.columnName,
+        originalValue: currentEditCell.originalValue,
+        newValue: newValue
+    });
     
     // 显示表单提交状态
     const saveButton = popup.querySelector('.edit-popup-save-btn');
@@ -2290,7 +2346,7 @@ async function saveCellEdit() {
         console.log(`开始保存编辑: 表=${currentEditCell.tableName}, 行=${currentEditCell.rowIndex}, 列=${currentEditCell.columnName}, 新值=${newValue}`);
         
         // 获取主键信息以构建更新条件
-        const result = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/info`);
+        const result = await apiRequest(`/api/table/${currentEditCell.tableName}/info`);
         console.log('获取表结构结果:', result);
         
         if (!result.success) {
@@ -2306,7 +2362,7 @@ async function saveCellEdit() {
         }
         
         // 获取当前行的主键值
-        const rowResult = await apiRequest(`/db_admin/api/table/${currentEditCell.tableName}/row/${currentEditCell.rowIndex}`);
+        const rowResult = await apiRequest(`/api/table/${currentEditCell.tableName}/row/${currentEditCell.rowIndex}`);
         console.log('获取行数据结果:', rowResult);
         
         if (!rowResult.success || !rowResult.data) {
@@ -2332,39 +2388,44 @@ async function saveCellEdit() {
         console.log('发送更新请求:', updateData);
         
         // 发送更新请求
-        const updateResult = await apiRequest('/db_admin/api/update', 'POST', updateData);
-        console.log('更新结果:', updateResult);
-        
-        if (!updateResult.success) {
-            throw new Error(updateResult.error || '更新失败');
+        try {
+            const updateResult = await apiRequest('/api/update', 'POST', updateData);
+            console.log('更新结果:', updateResult);
+            
+            if (!updateResult.success) {
+                throw new Error(updateResult.error || '更新失败');
+            }
+            
+            // 更新成功，更新单元格显示
+            showAlert(`数据已更新: ${updateResult.message || ''}`, 'success');
+            
+            // 使用与原单元格相同的显示逻辑，但更新值
+            currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
+            currentEditCell.cell.classList.add('updated-cell');
+            
+            // 在控制台显示单元格状态
+            console.log('更新后的单元格:', currentEditCell.cell);
+            
+            // 移除弹出窗口
+            if (popup && popup.parentNode) {
+                document.body.removeChild(popup);
+            }
+            
+            // 重置编辑状态
+            currentEditCell = null;
+            editingCellValue = null;
+            
+            // 刷新表格数据以确保显示最新数据
+            setTimeout(() => {
+                console.log('刷新表格数据...');
+                loadTableData();
+            }, 1000);
+        } catch (error) {
+            console.error('更新请求失败:', error);
+            throw error;  // 继续向上传递错误以便在外层catch中处理
         }
-        
-        // 更新成功，更新单元格显示
-        showAlert(`数据已更新: ${updateResult.message || ''}`, 'success');
-        
-        // 使用与原单元格相同的显示逻辑，但更新值
-        currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
-        currentEditCell.cell.classList.add('updated-cell');
-        
-        // 在控制台显示单元格状态
-        console.log('更新后的单元格:', currentEditCell.cell);
-        
-        // 移除弹出窗口
-        document.body.removeChild(popup);
-        
-        // 重置编辑状态
-        currentEditCell = null;
-        editingCellValue = null;
-        
-        // 刷新表格数据以确保显示最新数据
-        setTimeout(() => {
-            console.log('刷新表格数据...');
-            loadTableData();
-        }, 1000);
-        
     } catch (error) {
         console.error('保存单元格编辑错误详情:', error);
-        alert(`更新失败: ${error.message}`); // 使用原生alert确保用户看到错误
         showAlert(`更新失败: ${error.message}`, 'error');
         
         // 恢复按钮状态
@@ -2495,4 +2556,236 @@ function cellClickHandler(e) {
 function showPopup(message, type) {
     // 在这里添加显示弹出提示的逻辑
     console.log(`提示: ${message} (${type})`);
+}
+
+/**
+ * 创建表格单元格
+ * @param {string} tableName - 表名
+ * @param {string} column - 列名
+ * @param {any} value - 单元格值
+ * @param {boolean} isEditMode - 是否处于编辑模式
+ * @returns {HTMLTableCellElement} - 表格单元格元素
+ */
+function createTableCell(tableName, column, value, isEditMode) {
+    const td = document.createElement('td');
+    td.dataset.column = column;
+    
+    // 特殊处理空值
+    if (value === null || value === undefined) {
+        td.innerHTML = '<span class="text-muted">NULL</span>';
+        return td;
+    }
+    
+    // 处理视频表的file_path字段，添加播放按钮
+    if (tableName === 'videos' && column === 'file_path') {
+        // 创建视频播放按钮
+        const videoPath = value;
+        
+        // 创建容器
+        const container = document.createElement('div');
+        container.className = 'd-flex align-items-center';
+        
+        // 创建路径显示元素 - 使用更短的显示
+        const filename = videoPath.split('/').pop(); // 只显示文件名部分
+        const pathDisplay = document.createElement('span');
+        pathDisplay.className = 'video-path';
+        pathDisplay.textContent = filename;
+        pathDisplay.title = videoPath; // 完整路径显示为提示
+        
+        // 创建播放按钮
+        const playBtn = document.createElement('button');
+        playBtn.className = 'btn btn-sm btn-primary ms-2 video-btn';
+        playBtn.innerHTML = '<i class="bi bi-play-circle"></i> 播放';
+        playBtn.onclick = function(e) {
+            e.stopPropagation(); // 阻止事件冒泡
+            openVideoPlayer(videoPath);
+        };
+        
+        // 组装单元格内容
+        container.appendChild(pathDisplay);
+        container.appendChild(playBtn);
+        td.appendChild(container);
+    } else {
+        // 处理其他字段
+        // 数字类型右对齐
+        if (typeof value === 'number') {
+            td.className = 'text-end';
+            td.innerHTML = `<span class="fixed-width-content">${value}</span>`;
+        }
+        // 日期类型格式化
+        else if (value instanceof Date || (typeof value === 'string' && isDateString(value))) {
+            td.innerHTML = `<span class="fixed-width-content">${formatDateTime(value)}</span>`;
+        }
+        // 布尔类型显示为是/否
+        else if (typeof value === 'boolean') {
+            const booleanClass = value ? 'text-success' : 'text-danger';
+            const booleanText = value ? '是' : '否';
+            td.innerHTML = `<span class="fixed-width-content ${booleanClass}"><i class="bi ${value ? 'bi-check-circle' : 'bi-x-circle'}"></i> ${booleanText}</span>`;
+        }
+        // JSON对象美化展示
+        else if (typeof value === 'object') {
+            td.innerHTML = `<span class="fixed-width-content">${JSON.stringify(value)}</span>`;
+        }
+        // 默认字符串显示
+        else {
+            td.innerHTML = `<span class="fixed-width-content">${escapeHtml(String(value))}</span>`;
+        }
+    }
+    
+    // 如果表格处于编辑模式，添加可编辑类
+    if (isEditMode) {
+        td.classList.add('editable-cell');
+    }
+    
+    return td;
+}
+
+/**
+ * 打开视频播放器
+ * @param {string} videoPath - 视频文件路径
+ */
+function openVideoPlayer(videoPath) {
+    // 创建视频播放弹窗
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'videoPlayerModal';
+    modal.tabIndex = '-1';
+    modal.setAttribute('aria-labelledby', 'videoPlayerModalLabel');
+    modal.setAttribute('aria-hidden', 'true');
+    
+    // 从文件路径中提取文件名
+    const filename = videoPath.replace(/^.*[\\\/]/, '');
+    // 构建完整的视频URL
+    const fullVideoPath = `/db_admin/videos/${filename}`;
+    
+    // 获取视频标题（如果可能）
+    let videoTitle = "视频播放";
+    // 尝试从当前选中的表格行获取视频标题
+    if (currentTable === 'videos') {
+        try {
+            const selectedRow = document.querySelector(`#table-body tr[data-row-index="${currentEditCell?.rowIndex || 0}"]`);
+            if (selectedRow) {
+                const titleCell = selectedRow.querySelector('td[data-column="title"]');
+                if (titleCell) {
+                    const titleSpan = titleCell.querySelector('.fixed-width-content');
+                    if (titleSpan) {
+                        videoTitle = titleSpan.textContent || "视频播放";
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('获取视频标题失败:', e);
+        }
+    }
+    
+    // 创建弹窗内容
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="videoPlayerModalLabel">${videoTitle}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="ratio ratio-16x9">
+                        <video id="videoPlayer" controls autoplay>
+                            <source src="${fullVideoPath}" type="video/mp4">
+                            您的浏览器不支持HTML5视频播放。
+                        </video>
+                    </div>
+                    <div class="video-controls mt-3">
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="playPauseBtn">
+                                <i class="bi bi-pause-fill"></i> 暂停
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="muteBtn">
+                                <i class="bi bi-volume-up-fill"></i> 静音
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-info" id="currentTime">00:00 / 00:00</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="d-flex justify-content-between w-100">
+                        <div>
+                            <button type="button" class="btn btn-primary" id="downloadBtn">
+                                <i class="bi bi-download"></i> 下载视频
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加到页面
+    document.body.appendChild(modal);
+    
+    // 初始化Bootstrap模态框
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+    
+    // 获取视频元素
+    const videoPlayer = document.getElementById('videoPlayer');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    
+    // 播放/暂停按钮事件
+    if (playPauseBtn && videoPlayer) {
+        playPauseBtn.addEventListener('click', function() {
+            if (videoPlayer.paused) {
+                videoPlayer.play();
+                playPauseBtn.innerHTML = '<i class="bi bi-pause-fill"></i> 暂停';
+            } else {
+                videoPlayer.pause();
+                playPauseBtn.innerHTML = '<i class="bi bi-play-fill"></i> 播放';
+            }
+        });
+    }
+    
+    // 静音按钮事件
+    if (muteBtn && videoPlayer) {
+        muteBtn.addEventListener('click', function() {
+            videoPlayer.muted = !videoPlayer.muted;
+            if (videoPlayer.muted) {
+                muteBtn.innerHTML = '<i class="bi bi-volume-mute-fill"></i> 取消静音';
+            } else {
+                muteBtn.innerHTML = '<i class="bi bi-volume-up-fill"></i> 静音';
+            }
+        });
+    }
+    
+    // 时间更新事件
+    if (videoPlayer && currentTimeDisplay) {
+        videoPlayer.addEventListener('timeupdate', function() {
+            const currentMinutes = Math.floor(videoPlayer.currentTime / 60);
+            const currentSeconds = Math.floor(videoPlayer.currentTime % 60);
+            const durationMinutes = Math.floor(videoPlayer.duration / 60);
+            const durationSeconds = Math.floor(videoPlayer.duration % 60);
+            
+            currentTimeDisplay.textContent = `${currentMinutes.toString().padStart(2, '0')}:${currentSeconds.toString().padStart(2, '0')} / ${durationMinutes.toString().padStart(2, '0')}:${durationSeconds.toString().padStart(2, '0')}`;
+        });
+    }
+    
+    // 为下载按钮添加事件
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            window.open(fullVideoPath, '_blank');
+        });
+    }
+    
+    // 模态框关闭后清除
+    modal.addEventListener('hidden.bs.modal', function() {
+        if (videoPlayer) {
+            videoPlayer.pause();
+        }
+        document.body.removeChild(modal);
+    });
 }

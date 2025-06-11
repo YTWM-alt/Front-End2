@@ -376,13 +376,19 @@
         
         /**
          * 发送API请求
-         * @param {string} url - API URL
+         * @param {string} url - 请求URL
          * @param {string} method - 请求方法 (GET, POST)
          * @param {object} data - 请求数据
          * @returns {Promise} - 响应Promise
          */
         async function apiRequest(url, method = 'GET', data = null) {
             try {
+                // 处理URL前缀
+                // 如果URL不是以/db_admin开头，添加前缀
+                if (!url.startsWith('/db_admin')) {
+                    url = '/db_admin' + url;
+                }
+                
                 const options = {
                     method,
                     headers: {
@@ -422,7 +428,7 @@
             
             try {
                 showLoading();
-                const result = await apiRequest('/db_admin/api/query', 'POST', { query });
+                const result = await apiRequest('/api/query', 'POST', { query });
                 
                 if (result.success) {
                     if (Array.isArray(result.result) && result.result.length > 0) {
