@@ -74,7 +74,7 @@ if not exist .env (
             echo FLASK_ENV=development
             echo FLASK_DEBUG=1
             echo FLASK_HOST=0.0.0.0
-            echo FLASK_PORT=3002
+            echo FLASK_PORT=3003
             echo.
             echo # 数据库目录配置
             echo DATABASE_DIR=./database
@@ -87,7 +87,7 @@ if not exist .env (
 call :print_message "启动服务..."
 
 :: 读取端口配置
-set "PORT=3002"
+set "PORT=3003"
 for /f "tokens=2 delims==" %%a in ('type .env ^| findstr FLASK_PORT') do set "PORT=%%a"
 
 :: 启动服务

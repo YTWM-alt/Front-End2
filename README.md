@@ -117,7 +117,7 @@ flask db upgrade
 start.bat
 ```
 
-服务将在 http://localhost:3002 启动
+服务将在 http://localhost:3003 启动
 
 ### 启动前端服务
 1. 进入前端目录：
@@ -264,7 +264,7 @@ FLASK_APP=run.py
 FLASK_ENV=development
 FLASK_DEBUG=1
 FLASK_HOST=0.0.0.0
-FLASK_PORT=3002
+FLASK_PORT=3003
 
 # 数据库目录配置（可选）
 DATABASE_DIR=./database
@@ -286,8 +286,8 @@ python run.py
 ```
 
 服务启动后，可以通过以下地址访问：
-- 本地访问：http://localhost:3002
-- 局域网访问：http://<本机IP>:3002
+- 本地访问：http://localhost:3003
+- 局域网访问：http://<本机IP>:3003
 
 ## 📚 项目结构
 ```
@@ -384,7 +384,7 @@ pytest tests/test_auth.py
 pip install gunicorn
 
 # 启动服务
-gunicorn -w 4 -b 0.0.0.0:3002 run:app
+gunicorn -w 4 -b 0.0.0.0:3003 run:app
 ```
 
 ## 🔧 常见问题
@@ -402,7 +402,7 @@ gunicorn -w 4 -b 0.0.0.0:3002 run:app
 - 解决：确保已安装系统依赖（见"安装系统依赖"部分）
 
 ### 4. 端口占用问题
-- 问题：端口3002被占用
+- 问题：端口3003被占用
 - 解决：修改 `.env` 文件中的 `FLASK_PORT` 或关闭占用端口的程序
 
 ## 📞 支持与帮助

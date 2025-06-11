@@ -102,7 +102,7 @@ def create_env_file(db_name, db_user, db_password):
         f.write(f"FLASK_ENV=development\n")
         f.write(f"FLASK_DEBUG=1\n")
         f.write(f"FLASK_HOST=0.0.0.0\n")
-        f.write(f"FLASK_PORT=3002\n")
+        f.write(f"FLASK_PORT=3003\n")
         f.write(f"MYSQL_HOST=localhost\n")
         f.write(f"MYSQL_PORT=3306\n")
         f.write(f"MYSQL_USER={db_user}\n")

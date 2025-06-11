@@ -12,7 +12,6 @@ from mysql.connector import Error, pooling
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, Blueprint, send_from_directory
 from functools import wraps
-import pandas as pd
 import threading
 import queue
 import time
@@ -585,7 +584,7 @@ def update_cell():
         if not data:
             logger.warning("更新请求数据为空")
             return jsonify({'success': False, 'error': '请求数据为空'})
-            
+        
         table = data.get('table')
         column = data.get('column')
         value = data.get('value')

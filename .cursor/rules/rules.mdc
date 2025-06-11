@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Development Guidelines and Rules
+I. General Principles
+Rule #1: Language and Cultural Adaptation
+1. All texts in the code (including comments, UI texts, logs) must use Chinese by default to ensure no language compatibility issues when distributing in China.
+2. For internationalization, plan multilingual files (such as .arb or intl packages) during the design phase and manage resources accordingly.
+Rule #2: Naming Conventions
+1. Dart files, classes, methods, and attributes must consistently follow either camelCase or lowercase_with_underscore naming without mixing.
+2. Flutter Widgets must have readable and semantically clear names, avoiding generic names like MyWidget.
+3. Domain names must closely align with business logic, ensuring consistency in domain objects and context names within DDD, supported by clear Chinese comments.
+Rule #3: Documentation and Comments
+1. Complex logic or cross-component interactions require detailed Chinese comments, accompanied by UML diagrams or flowcharts if necessary.
+2. Comments should be concise and must not conflict with the actual code logic. Any discrepancies must be promptly corrected.
+Rule #4: Maintainability Principle
+1. Advocate "high cohesion, low coupling" design, eliminating extensive duplicate code by extracting common components and methods.
+2. Avoid over-engineering while leaving necessary interfaces for future extensions and modifications.
+Rule 5: Functional Isolation and Confirmation
+1. When modifying or adding a feature, do not alter other existing features.
+2. If changes to other features are absolutely necessary, send a confirmation request before proceeding.
+II. Architecture and Code Organization
+Rule #6: DDD and Layered Architecture
+1. Domain Layer: Contains core domain models, entities, value objects, and domain services. Business logic changes must start from this layer.
+2. Application Layer: Orchestrates domain logic and external interface calls, defines use case services, and avoids embedding direct business logic.
+3. Infrastructure Layer: Manages database operations, network requests, and third-party API calls. Prevent direct embedding of these logics in other layers.
+4. Presentation/UI Layer: Utilizes Flutter's Widget system for interaction, state management, and user I/O handling, decoupled from business logic.
+Rule #7: Directory Structure and Sub-packages
+1. Structure projects into directories such as domain, application, infrastructure, and presentation based on DDD layers.
+2. Further divide directories into sub-functional folders, e.g., domain/user, domain/order, each with independent entities and repositories.
+Rule #8: Aggregate Roots and Entity Management
+1. Maintain entity collections within an aggregate root to avoid cross-aggregate direct manipulation.
+2. For cross-aggregate data access, utilize domain or application services rather than direct entity access.
+III. Flutter Adaptation and Development Process
+Rule #9: Flutter Version Compatibility
+1. Specify fixed or semantic version ranges for Flutter SDK in pubspec.yaml to ensure dependency consistency.
+2. Regularly check for Flutter updates, conduct compatibility testing, and document necessary adaptations for breaking changes.
+Rule #10: Third-party Plugin and China Adaptation
+1. Prioritize using stable domestic sources or alternatives like Umeng Analytics to ensure accessibility within China's network environment.
+2. Set version constraints on third-party libraries and regularly assess upgrade risks.
+Rule #11: UI and Interaction
+1. Follow Material or Cupertino Design guidelines, adapted for user behaviors prevalent in China, including gestures, back button logic, and long-press actions.
+2. Conduct adaptive layout testing for different resolutions and Android versions, employing Flutter tools like MediaQuery and LayoutBuilder.
+Rule #12: Performance Optimization
+1. Avoid heavy computations or complex logic within the build method; externalize them as pre-processing or asynchronous operations if necessary.
+2. Employ lazy loading, pagination, or ListView.builder for extensive lists (ListView, GridView) to prevent sluggish performance.
+Rule #13: Internationalization and Localization
+1. Ensure Chinese fonts used are legally sourced, avoiding fonts with unclear copyrights.
+IV. Version Control and Collaboration
+Rule #14: Git Branch Strategy
+1. Utilize Git Flow or trunk-based development: main (or master) maintains stable releases; develop for daily iterations; feature/* for new features; release/* for version deployments.
+2. Pull the latest branch code and resolve conflicts before committing. Perform Code Reviews before merging.
+Rule #15: Commit Standards
+1. Commit messages must clearly describe changes, ideally with Chinese-English keywords for easy search.
+  ○ Example: feat: 新增用户登录领域实体逻辑
+  ○ Example: fix: 修复支付流程中的订单状态异常
+2. For significant updates or dependency changes, emphasize and briefly describe them clearly awaiting confirmation.
+Rule #16: CI/CD Integration
+1. Configure automated pipelines for crucial branches (develop, release) with builds and tests before allowing merges.
+2. Block merges if tests fail or code quality checks (static analysis) do not pass, notifying responsible developers for immediate fixes.
+V. Testing and Quality Assurance
+Rule #17: Test Coverage
+1. Emphasize domain-layer unit tests and application-layer integration tests for core logic reliability.
+2. Ensure integration and widget tests cover essential business processes.
+Rule #18: Unit Test Standards
+1. Match test filenames with source filenames, placing them in test/ directories or appending _test.dart within respective domain folders.
+2. Minimize dependencies on external resources using Mocks or Stubs to enhance test efficiency.
+VI. Release and Iteration
+Rule #20: Android Version Adaptation
+1. Specify compilation and target SDK versions in build.gradle or gradle.properties, ensuring compatibility with modern Android versions and backward compatibility (commonly Android 5.0+).
+Rule #21: Continuous Iteration and Hot Updates
+1. Comply with regulations on hot updates in China and market-specific guidelines to avoid policy violations.
+2. Perform compatibility checks for interfaces and domain models before each iteration to prevent breaking user data or workflows.
+VII. Security and Compliance
+Rule #22: User Privacy and Data Security
+1. Adhere to Chinese legal requirements (e.g., Personal Information Protection Law, Cybersecurity Law), clearly indicating and acquiring authorization for data collection.
+2. Encrypt sensitive data storage and transmission.
+Rule #23: Logs and Debug Information
+1. Limit or disable debug logs in production environments to avoid sensitive data leakage.
+2. Logs should be anonymized and comply with privacy regulations when using third-party platforms.
+Rule #24: Legal SDKs and Functionality Compliance
+1. Ensure third-party SDKs comply with Chinese legal requirements, explicitly requesting and indicating permissions for sensitive functionalities.
+2. Confirm stability and legality of integrated SDKs for push notifications and analytics.
+X. Additional Suggestions
+Rule #25: Changelog
+1. Clearly document updates in both Chinese and English, awaiting confirmation.
+2. Note potential compatibility issues and solutions for major iterations, awaiting confirmation.
+Rule #26: Flexibility and Adaptation
+● Ensure flexible use of design patterns, DDD layering, or plugins based on business needs without overly rigid frameworks.
+Rule #27: Reserve Operational Needs
+● Reserve flexibility in code for frequent operational changes in China (e.g., marketing campaigns, remote configurations).
+Rule #28: Data Analysis and User Insights
+● Embed analytics and data points during development for future decision-making.
+● Integrate tracking logic generation with clear annotations specifying purpose and event IDs.
+Rule #29: Essential Chinese Comments
+● Clearly document functionality of each function, module, and class with necessary Chinese comments.
+Rule #30: Refer to Flutter Official Documentation First
+● Before performing any operation, modifying code, or executing tasks, always consult and read the relevant sections of the official Flutter documentation related to the goal or upcoming action.

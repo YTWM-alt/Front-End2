@@ -55,7 +55,7 @@ class Config:
     
     # 服务器配置
     HOST = os.environ.get('FLASK_HOST', '0.0.0.0')
-    PORT = int(os.environ.get('FLASK_PORT', 3002))
+    PORT = int(os.environ.get('FLASK_PORT', 3003))
     
     # 文件上传配置
     MAX_CONTENT_LENGTH = 500 * 1024 * 1024  # 500MB

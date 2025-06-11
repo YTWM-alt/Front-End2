@@ -98,7 +98,7 @@ check_env() {
 FLASK_APP=app
 FLASK_DEBUG=1
 FLASK_HOST=0.0.0.0
-FLASK_PORT=3002
+FLASK_PORT=3003
 SECRET_KEY=dev-key-please-change-in-production
 EOL
             print_success "已创建默认.env文件"
@@ -113,7 +113,7 @@ start_service() {
     
     # 从.env文件读取端口
     PORT=$(grep FLASK_PORT .env | cut -d '=' -f2)
-    print_info "服务将在 http://localhost:${PORT:-3002} 启动"
+    print_info "服务将在 http://localhost:${PORT:-3003} 启动"
     
     # 启动Python服务
     python run.py

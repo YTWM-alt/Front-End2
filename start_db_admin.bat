@@ -27,7 +27,7 @@ if "%VIRTUAL_ENV%"=="" (
 
 REM 检查和安装依赖
 echo 检查所需依赖...
-pip install -q mysql-connector-python Flask pandas werkzeug Flask-SQLAlchemy
+pip install -q mysql-connector-python Flask werkzeug Flask-SQLAlchemy
 
 REM 确保目录存在
 if not exist "logs" mkdir logs

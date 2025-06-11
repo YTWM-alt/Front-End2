@@ -56,7 +56,7 @@ def create_app(config_class=None):
     # 注册蓝图
     from app.routes import auth, video, question, feedback, ai
     app.register_blueprint(auth.bp, url_prefix='/api/auth')
-    app.register_blueprint(video.bp, url_prefix='/api/videos')
+    app.register_blueprint(video.bp, url_prefix='/videos')
     app.register_blueprint(question.bp, url_prefix='/api/questions')
     app.register_blueprint(feedback.bp, url_prefix='/api/feedback')
     app.register_blueprint(ai.bp, url_prefix='/api/ai')

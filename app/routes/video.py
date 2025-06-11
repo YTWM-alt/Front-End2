@@ -16,46 +16,82 @@ logger = logging.getLogger(__name__)
 def get_videos():
     """获取所有视频信息 - 使用数据库"""
     try:
+        logger.info("开始获取视频列表")
+        
         # 从数据库获取所有视频记录
         videos = db.session.query(Video).filter_by(is_deleted=False).all()
+        logger.info(f"从数据库获取到 {len(videos)} 个视频记录")
         
         video_list = []
         for video in videos:
-            # 检查文件是否仍然存在
-            full_path = current_app.config['BASE_DIR'] / video.file_path
-            if not full_path.exists():
-                logger.warning(f"视频文件不存在: {full_path}")
+            try:
+                # 检查文件是否仍然存在
+                full_path = current_app.config['BASE_DIR'] / video.file_path
+                if not full_path.exists():
+                    logger.warning(f"视频文件不存在: {full_path}")
+                    # 尝试在VIDEO_DIR中查找
+                    alt_path = current_app.config['VIDEO_DIR'] / Path(video.file_path).name
+                    if not alt_path.exists():
+                        logger.warning(f"视频文件在备选位置也不存在: {alt_path}")
+                        continue
+                    else:
+                        full_path = alt_path
+                        logger.info(f"在备选位置找到视频文件: {full_path}")
+                
+                # 获取文件大小
+                file_size = os.path.getsize(full_path) if full_path.exists() else video.file_size
+                
+                # 格式化文件大小
+                if file_size < 1024:
+                    size_formatted = f"{file_size}B"
+                elif file_size < 1024 * 1024:
+                    size_formatted = f"{round(file_size/1024, 1)}KB"
+                else:
+                    size_formatted = f"{round(file_size/(1024*1024), 1)}MB"
+                
+                video_info = {
+                    'id': video.id,
+                    'title': video.title or Path(video.file_path).stem,
+                    'filename': Path(video.file_path).name,
+                    'file_path': str(Path(video.file_path).name),  # 只返回文件名
+                    'file_size': file_size,
+                    'size_formatted': size_formatted,
+                    'format': video.format or Path(video.file_path).suffix.lstrip('.'),
+                    'duration': video.duration,
+                    'duration_formatted': f"{int(video.duration // 60)}:{int(video.duration % 60):02d}" if video.duration else "0:00",
+                    'status': video.status,
+                    'upload_time': video.created_at.strftime('%Y-%m-%d %H:%M:%S') if video.created_at else None,
+                    'user_id': video.user_id,
+                    'description': video.description,
+                    'thumbnail_path': video.thumbnail_path if video.thumbnail_path else None
+                }
+                video_list.append(video_info)
+                logger.debug(f"添加视频信息到列表: {video_info['title']}")
+            except Exception as e:
+                logger.error(f"处理视频信息时出错: {str(e)}")
                 continue
-            
-            video_info = {
-                'id': video.id,
-                'title': video.title,
-                'filename': Path(video.file_path).name,
-                'file_path': video.file_path,
-                'file_size': video.file_size,
-                'file_size_mb': round(video.file_size / (1024 * 1024), 2),
-                'format': video.format,
-                'duration': video.duration,
-                'duration_formatted': f"{int(video.duration // 60)}:{int(video.duration % 60):02d}" if video.duration else "0:00",
-                'status': video.status,
-                'upload_time': video.created_at.strftime('%Y-%m-%d %H:%M:%S') if video.created_at else None,
-                'user_id': video.user_id,
-                'description': video.description
-            }
-            video_list.append(video_info)
         
-        logger.info(f"成功获取 {len(video_list)} 个视频信息")
-        return jsonify({
+        logger.info(f"成功获取 {len(video_list)} 个有效视频信息")
+        response_data = {
             'success': True,
             'videos': video_list,
             'count': len(video_list)
-        })
+        }
+        logger.debug(f"返回数据: {response_data}")
+        
+        # 确保返回有效的JSON响应，即使列表为空
+        return jsonify(response_data)
         
     except Exception as e:
-        logger.error(f"获取视频列表失败: {str(e)}")
+        error_msg = f"获取视频列表失败: {str(e)}"
+        logger.error(error_msg)
+        
+        # 即使出错也返回空的视频列表
         return jsonify({
             'success': False,
-            'message': f'获取视频列表失败: {str(e)}'
+            'message': error_msg,
+            'videos': [],
+            'count': 0
         }), 500
 
 @bp.route('/<filename>', methods=['GET'])

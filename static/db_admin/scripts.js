@@ -470,8 +470,8 @@ async function apiRequest(url, method = 'GET', data = null) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
             options.signal = controller.signal;
-            
-            const response = await fetch(url, options);
+
+        const response = await fetch(url, options);
             clearTimeout(timeoutId); // 清除超时
             
             // 检查响应状态
@@ -489,22 +489,22 @@ async function apiRequest(url, method = 'GET', data = null) {
             }
             
             // 解析响应JSON
-            let result;
-            try {
-                result = await response.json();
-            } catch (jsonError) {
-                console.error('JSON解析错误:', jsonError);
-                throw new Error(`无法解析响应: ${jsonError.message}`);
-            }
+        let result;
+        try {
+            result = await response.json();
+        } catch (jsonError) {
+            console.error('JSON解析错误:', jsonError);
+            throw new Error(`无法解析响应: ${jsonError.message}`);
+        }
 
-            console.log(`收到响应: ${url}`, result);
-            
-            // 检查结果中是否有错误信息
-            if (result.error) {
-                throw new Error(result.error);
-            }
+        console.log(`收到响应: ${url}`, result);
 
-            return result;
+        // 检查结果中是否有错误信息
+        if (result.error) {
+            throw new Error(result.error);
+        }
+
+        return result;
         } catch (fetchError) {
             // 处理请求中断的特殊情况
             if (fetchError.name === 'AbortError') {
@@ -1315,7 +1315,7 @@ async function loadTableData() {
                                 td.style.minWidth = '150px';
                                 td.style.maxWidth = '150px';
                             }
-                        }
+                    }
                     
                     tr.appendChild(td);
                 });
@@ -2390,36 +2390,36 @@ async function saveCellEdit() {
         // 发送更新请求
         try {
             const updateResult = await apiRequest('/api/update', 'POST', updateData);
-            console.log('更新结果:', updateResult);
-            
-            if (!updateResult.success) {
-                throw new Error(updateResult.error || '更新失败');
-            }
-            
-            // 更新成功，更新单元格显示
-            showAlert(`数据已更新: ${updateResult.message || ''}`, 'success');
-            
-            // 使用与原单元格相同的显示逻辑，但更新值
-            currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
-            currentEditCell.cell.classList.add('updated-cell');
-            
-            // 在控制台显示单元格状态
-            console.log('更新后的单元格:', currentEditCell.cell);
-            
-            // 移除弹出窗口
+        console.log('更新结果:', updateResult);
+        
+        if (!updateResult.success) {
+            throw new Error(updateResult.error || '更新失败');
+        }
+        
+        // 更新成功，更新单元格显示
+        showAlert(`数据已更新: ${updateResult.message || ''}`, 'success');
+        
+        // 使用与原单元格相同的显示逻辑，但更新值
+        currentEditCell.cell.innerHTML = `<span class="fixed-width-content">${escapeHtml(newValue)}</span>`;
+        currentEditCell.cell.classList.add('updated-cell');
+        
+        // 在控制台显示单元格状态
+        console.log('更新后的单元格:', currentEditCell.cell);
+        
+        // 移除弹出窗口
             if (popup && popup.parentNode) {
-                document.body.removeChild(popup);
+        document.body.removeChild(popup);
             }
-            
-            // 重置编辑状态
-            currentEditCell = null;
-            editingCellValue = null;
-            
-            // 刷新表格数据以确保显示最新数据
-            setTimeout(() => {
-                console.log('刷新表格数据...');
-                loadTableData();
-            }, 1000);
+        
+        // 重置编辑状态
+        currentEditCell = null;
+        editingCellValue = null;
+        
+        // 刷新表格数据以确保显示最新数据
+        setTimeout(() => {
+            console.log('刷新表格数据...');
+            loadTableData();
+        }, 1000);
         } catch (error) {
             console.error('更新请求失败:', error);
             throw error;  // 继续向上传递错误以便在外层catch中处理
