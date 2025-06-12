@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, send_file
 import os
 import time
 import threading
@@ -181,4 +181,35 @@ def ai_status():
             'success': False,
             'message': '获取AI状态失败',
             'error': str(e)
-        }), 500 
+        }), 500
+
+@bp.route('/videos/<filename>')
+def serve_ai_video(filename):
+    """提供AI生成的视频文件"""
+    try:
+        # 从AI_product目录提供视频
+        video_dir = current_app.config['AI_PRODUCT_DIR']
+        file_path = video_dir / filename
+        logger.info(f"请求AI视频文件: {file_path}, 存在状态: {file_path.exists()}")
+        
+        if file_path.exists():
+            # 猜测视频MIME类型
+            mime_type = 'video/mp4'  # 默认为MP4
+            if filename.lower().endswith('.mp4'):
+                mime_type = 'video/mp4'
+            elif filename.lower().endswith('.webm'):
+                mime_type = 'video/webm'
+            elif filename.lower().endswith('.ogg') or filename.lower().endswith('.ogv'):
+                mime_type = 'video/ogg'
+            elif filename.lower().endswith('.mov'):
+                mime_type = 'video/quicktime'
+            
+            logger.info(f"提供AI视频文件: {file_path}, MIME类型: {mime_type}")
+            return send_file(file_path, mimetype=mime_type)
+        else:
+            logger.error(f"AI视频文件不存在: {file_path}")
+            return jsonify({'error': 'AI视频文件不存在'}), 404
+            
+    except Exception as e:
+        logger.error(f"提供AI视频文件失败: {str(e)}")
+        return jsonify({'error': str(e)}), 500 

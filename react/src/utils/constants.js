@@ -108,7 +108,7 @@ export const SAMPLE_VIDEO = {
   duration: "02:42",
   currentTime: "0:00",
   thumbnail: "https://cdn.pixabay.com/photo/2017/01/25/17/35/background-2008590_1280.jpg",
-  source: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
+  source: "2025-06-07_17-33-24.mp4"
 };
 
 // 验证规则

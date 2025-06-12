@@ -25,7 +25,11 @@ const VideoPlayer = ({ videoData }) => {
       
       // 重新加载视频
       videoRef.current.load();
-      console.log('🎬 加载新视频源:', videoData.source);
+      // 修改：添加视频源路径的日志输出
+      const videoSource = videoData.source.startsWith('http') 
+        ? videoData.source 
+        : `/api/ai/videos/${videoData.source}`;
+      console.log('🎬 加载新视频源:', videoSource);
     }
   }, [videoData.source]);
 
@@ -139,7 +143,7 @@ const VideoPlayer = ({ videoData }) => {
         onLoadStart={() => setIsLoading(true)}
         preload="metadata"
       >
-        <source src={videoData.source} type="video/mp4" />
+        <source src={videoData.source.startsWith('http') ? videoData.source : `/api/ai/videos/${videoData.source}`} type="video/mp4" />
         您的浏览器不支持视频播放。
       </video>
       
