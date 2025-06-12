@@ -1,5 +1,5 @@
 // API配置
-const API_BASE_URL = 'http://localhost:3003';
+const API_BASE_URL = 'http://localhost:3003/api';
 
 /**
  * 发送HTTP请求的通用函数
@@ -116,7 +116,7 @@ export const checkServerHealth = async () => {
  */
 export const processAIVideo = async () => {
   try {
-    const result = await fetchAPI('/process-ai-video', {
+    const result = await fetchAPI('/videos/process-ai-video', {
       method: 'POST',
     });
 

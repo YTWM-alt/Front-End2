@@ -157,8 +157,8 @@ def get_pending_answers():
             'error': str(e)
         }), 500
 
-@bp.route('/ai-status', methods=['GET'])
-def get_ai_status():
+@bp.route('/', methods=['GET'])
+def ai_status():
     """获取AI服务状态"""
     try:
         global pending_answers, last_processed_time

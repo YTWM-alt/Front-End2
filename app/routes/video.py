@@ -199,7 +199,10 @@ def process_ai_video():
     """处理AI产品视频 - 使用数据库"""
     try:
         ai_product_dir = current_app.config['AI_PRODUCT_DIR']
+        logger.info(f"开始处理AI产品目录: {ai_product_dir}")
+        
         if not ai_product_dir.exists():
+            logger.error(f"AI产品目录不存在: {ai_product_dir}")
             return jsonify({
                 'success': False,
                 'message': 'AI产品目录不存在'
@@ -212,20 +215,35 @@ def process_ai_video():
             clean_ext = ext.lstrip('.')
             video_files.extend(ai_product_dir.glob(f'*.{clean_ext}'))
         
+        logger.info(f"找到 {len(video_files)} 个视频文件")
+        
         processed_count = 0
         for video_file in video_files:
             try:
-                # 检查是否已存在于数据库
+                logger.info(f"正在处理视频文件: {video_file}")
+                
+                # 检查是否已存在于数据库，并且文件真实存在
+                relative_path = str(video_file.relative_to(current_app.config['BASE_DIR']))
                 existing_video = db.session.query(Video).filter_by(
-                    file_path=str(video_file.relative_to(current_app.config['BASE_DIR']))
+                    file_path=relative_path,
+                    is_deleted=False
                 ).first()
                 
-                if existing_video:
+                video_dir_path = current_app.config['VIDEO_DIR'] / video_file.name
+                
+                if existing_video and video_dir_path.exists():
+                    logger.info(f"视频已存在于数据库中且文件存在: {relative_path}")
                     continue
                 
                 # 获取视频信息
-                with VideoFileClip(str(video_file)) as clip:
-                    duration = clip.duration
+                duration = None
+                try:
+                    with VideoFileClip(str(video_file)) as clip:
+                        duration = clip.duration
+                    logger.info(f"成功获取视频时长: {duration}秒")
+                except Exception as e:
+                    logger.warning(f"获取视频时长失败（将使用默认值0）: {str(e)}")
+                    duration = 0
                 
                 # 获取默认用户
                 default_user = db.session.query(User).first()
@@ -233,10 +251,20 @@ def process_ai_video():
                     logger.error("未找到用户，无法处理AI视频")
                     continue
                 
+                # 如果视频不在video目录中，复制过去
+                if not video_dir_path.exists():
+                    try:
+                        import shutil
+                        shutil.copy2(str(video_file), str(video_dir_path))
+                        logger.info(f"已复制视频文件到video目录: {video_dir_path}")
+                    except Exception as e:
+                        logger.error(f"复制视频文件失败: {str(e)}")
+                        continue
+                
                 # 创建视频记录
                 video = Video(
                     title=f"AI产品-{video_file.stem}",
-                    file_path=str(video_file.relative_to(current_app.config['BASE_DIR'])),
+                    file_path=str(video_dir_path.relative_to(current_app.config['BASE_DIR'])),
                     file_size=video_file.stat().st_size,
                     format=video_file.suffix[1:].lower(),
                     user_id=default_user.id,
@@ -247,12 +275,16 @@ def process_ai_video():
                 
                 db.session.add(video)
                 db.session.commit()
+                logger.info(f"成功添加视频记录: {video.title}")
                 processed_count += 1
                 
             except Exception as e:
                 logger.error(f"处理AI视频文件失败: {str(e)}")
+                if db.session:
+                    db.session.rollback()
                 continue
         
+        logger.info(f"处理完成，共处理 {processed_count} 个视频文件")
         return jsonify({
             'success': True,
             'message': f'成功处理 {processed_count} 个AI视频文件',
@@ -261,6 +293,8 @@ def process_ai_video():
         
     except Exception as e:
         logger.error(f"处理AI视频失败: {str(e)}")
+        if db.session:
+            db.session.rollback()
         return jsonify({
             'success': False,
             'message': f'处理AI视频失败: {str(e)}'

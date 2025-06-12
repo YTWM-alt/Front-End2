@@ -14,6 +14,15 @@ logger = logging.getLogger(__name__)
 # 创建认证蓝图
 bp = Blueprint('auth', __name__)
 
+@bp.route('/', methods=['GET'])
+def auth_status():
+    """获取认证服务状态"""
+    return jsonify({
+        'success': True,
+        'message': '认证服务正常运行',
+        'timestamp': datetime.datetime.now().isoformat()
+    })
+
 @bp.route('/register', methods=['POST'])
 def register():
     try:
