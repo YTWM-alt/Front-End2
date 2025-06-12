@@ -3,7 +3,7 @@ import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import FloatingElements from '../components/common/FloatingElements';
 import Notification from '../components/common/Notification';
-import { deleteVideo } from '../utils/api';
+import { deleteVideo, getVideos } from '../utils/api';
 
 /**
  * 我的视频页面组件
@@ -52,77 +52,18 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
     try {
       setLoading(true);
       console.log('🔍 开始获取视频列表...');
-      const timestamp = new Date().getTime();
-      const url = `http://localhost:3003/videos/?_t=${timestamp}`;
-      console.log('🌐 请求URL:', url);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',  // 改回omit，因为我们不需要发送cookie
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      console.log('📥 收到响应:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ 响应错误:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const text = await response.text();
-      console.log('📄 原始响应文本:', text);
       
-      let data;
-      try {
-        // 如果响应内容为空，返回空数组
-        if (!text.trim()) {
-          console.log('⚠️ 响应内容为空，使用空数组');
-          data = { success: true, videos: [], count: 0 };
-        } else {
-          data = JSON.parse(text);
-          console.log('✅ 解析后的数据:', data);
-        }
-      } catch (e) {
-        console.error('❌ JSON解析错误:', e);
-        throw new Error('响应格式错误');
-      }
+      const result = await getVideos();
+      console.log('✅ 获取视频列表结果:', result);
 
-      // 检查data.success或自行构造一个有效的响应
-      if ((data.success && Array.isArray(data.videos)) || Array.isArray(data)) {
-        // 兼容两种可能的数据结构
-        const videoArray = Array.isArray(data.videos) ? data.videos : (Array.isArray(data) ? data : []);
-        console.log('✅ 获取视频列表成功:', videoArray);
-        const processedVideos = videoArray.map(video => ({
-          ...video,
-          sizeCategory: getSizeCategory(video.file_size || 0),
-          durationCategory: getDurationCategory(video.duration || 0),
-          createdTime: video.upload_time || new Date().toISOString(),
-          modifiedTime: video.upload_time || new Date().toISOString(),
-          // 添加默认值
-          title: video.title || '未命名视频',
-          description: video.description || '',
-          format: video.format || 'mp4',
-          status: video.status || 'ready',
-          file_size: video.file_size || 0,
-          duration: video.duration || 0
-        }));
+      if (result.success && Array.isArray(result.videos)) {
+        const processedVideos = result.videos;
         console.log('🎥 处理后的视频列表:', processedVideos);
         setVideos(processedVideos);
         setFilteredVideos(processedVideos);
         showLocalNotification(`成功加载 ${processedVideos.length} 个视频`, 'success');
       } else {
-        console.warn('⚠️ 数据格式异常，使用空数组:', data);
+        console.warn('⚠️ 数据格式异常:', result);
         setVideos([]);
         setFilteredVideos([]);
         showLocalNotification('没有找到视频', 'info');
@@ -445,8 +386,10 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
       'https://cdn.pixabay.com/photo/2016/11/29/06/15/book-1867171_1280.jpg'
     ];
     
-    // 根据视频ID选择不同的封面图
-    const index = Math.abs(video.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % defaultThumbnails.length;
+    // 添加类型检查和默认值处理
+    const videoId = video?.id?.toString() || '0';
+    // 使用字符串的reduce方法计算索引
+    const index = Math.abs(videoId.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % defaultThumbnails.length;
     return defaultThumbnails[index];
   };
 

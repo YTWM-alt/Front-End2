@@ -50,7 +50,7 @@ def get_videos():
                     size_formatted = f"{round(file_size/(1024*1024), 1)}MB"
                 
                 video_info = {
-                    'id': video.id,
+                    'id': str(video.id),  # 确保id是字符串
                     'title': video.title or Path(video.file_path).stem,
                     'filename': Path(video.file_path).name,
                     'file_path': str(Path(video.file_path).name),  # 只返回文件名
