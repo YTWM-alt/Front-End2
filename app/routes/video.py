@@ -218,6 +218,8 @@ def process_ai_video():
         logger.info(f"找到 {len(video_files)} 个视频文件")
         
         processed_count = 0
+        latest_video = None  # 用于记录最新处理的视频
+        
         for video_file in video_files:
             try:
                 logger.info(f"正在处理视频文件: {video_file}")
@@ -233,6 +235,7 @@ def process_ai_video():
                 
                 if existing_video and video_dir_path.exists():
                     logger.info(f"视频已存在于数据库中且文件存在: {relative_path}")
+                    latest_video = existing_video  # 更新最新视频
                     continue
                 
                 # 获取视频信息
@@ -276,6 +279,7 @@ def process_ai_video():
                 db.session.add(video)
                 db.session.commit()
                 logger.info(f"成功添加视频记录: {video.title}")
+                latest_video = video  # 更新最新视频
                 processed_count += 1
                 
             except Exception as e:
@@ -285,11 +289,26 @@ def process_ai_video():
                 continue
         
         logger.info(f"处理完成，共处理 {processed_count} 个视频文件")
-        return jsonify({
+        
+        # 构建响应数据
+        response_data = {
             'success': True,
             'message': f'成功处理 {processed_count} 个AI视频文件',
             'processed_count': processed_count
-        })
+        }
+        
+        # 如果有最新处理的视频，添加其信息
+        if latest_video:
+            video_filename = Path(latest_video.file_path).name
+            response_data.update({
+                'videoUrl': f'/videos/{video_filename}',
+                'originalFileName': video_filename,
+                'newFileName': video_filename,
+                'timestamp': latest_video.created_at.isoformat() if latest_video.created_at else None
+            })
+            logger.info(f"返回最新视频信息: {response_data}")
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logger.error(f"处理AI视频失败: {str(e)}")
