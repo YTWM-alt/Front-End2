@@ -5,6 +5,37 @@
   margin: 0 auto;
   padding: 40px 20px;
   min-height: calc(100vh - 200px);
+  position: relative; /* 添加相对定位以支持返回按钮的绝对定位 */
+}
+
+/* 返回按钮样式 */
+.back-btn {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  padding: 8px 16px;
+  background-color: var(--light);
+  border: 1px solid var(--light-border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--gray);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:hover {
+  background-color: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 111, 227, 0.2);
+}
+
+.back-btn i {
+  font-size: 14px;
 }
 
 /* 页面标题区域 */

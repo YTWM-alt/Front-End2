@@ -153,8 +153,26 @@ const Community = ({ authHook, showNotification, onNavigate }) => {
     return 0; // 保持原顺序
   });
 
+  // 处理返回并刷新
+  const handleBackAndRefresh = () => {
+    onNavigate('/');
+    // 短暂延迟后刷新页面，确保导航完成
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
   return (
     <div className="community-page">
+      {/* 返回按钮 */}
+      <button 
+        className="back-btn"
+        onClick={handleBackAndRefresh}
+      >
+        <i className="fas fa-arrow-left"></i>
+        返回主页
+      </button>
+
       {/* 页面标题 */}
       <div className="community-header">
         <div className="header-content">
