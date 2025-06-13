@@ -93,10 +93,26 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
         <div className="video-controls">
           <button 
             className="control-btn" 
-            title="关闭"
+            title="重新生成"
             onClick={handleClose}
+            style={{
+              background: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              padding: '8px 15px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(74, 111, 227, 0.3)',
+              width: 'auto',
+              height: 'auto'
+            }}
           >
-            <i className="fas fa-times"></i>
+            <i className="fas fa-sync-alt"></i>
+            重新生成
           </button>
         </div>
       </div>
