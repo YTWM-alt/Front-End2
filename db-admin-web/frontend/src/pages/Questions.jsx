@@ -96,6 +96,19 @@ const Questions = () => {
     }
   };
 
+  // 添加问题
+  const handleAddQuestion = () => {
+    setEditingQuestion(null); // 设置为null表示是添加模式
+    setEditFormData({
+      title: '',
+      content: '',
+      subject: '',
+      grade_level: '',
+      status: 'pending'
+    });
+    setIsEditModalOpen(true);
+  };
+
   // 编辑问题
   const handleEditQuestion = (question) => {
     setEditingQuestion(question);
@@ -109,24 +122,30 @@ const Questions = () => {
     setIsEditModalOpen(true);
   };
 
-  // 保存问题编辑
+  // 保存问题（创建或更新）
   const handleSaveQuestion = async () => {
-    if (!editingQuestion) return;
-    
     try {
-      const response = await questionAPI.updateQuestion(editingQuestion.id, editFormData);
+      let response;
+      if (editingQuestion) {
+        // 更新问题
+        response = await questionAPI.updateQuestion(editingQuestion.id, editFormData);
+      } else {
+        // 创建问题
+        response = await questionAPI.createQuestion(editFormData);
+      }
+      
       if (response.success) {
-        alert('问题信息更新成功');
+        alert(editingQuestion ? '问题信息更新成功' : '问题创建成功');
         setIsEditModalOpen(false);
         setEditingQuestion(null);
         setEditFormData({});
         // 重新加载当前页数据
         loadQuestions(currentPage, searchTerm, statusFilter, gradeFilter, subjectFilter);
       } else {
-        alert(response.message || '更新失败');
+        alert(response.message || (editingQuestion ? '更新失败' : '创建失败'));
       }
     } catch (err) {
-      alert(err.message || '更新失败');
+      alert(err.message || (editingQuestion ? '更新失败' : '创建失败'));
     }
   };
 
@@ -231,7 +250,7 @@ const Questions = () => {
       {/* 搜索和筛选栏 */}
       <div className="card">
         <div className="card-body space-y-4">
-          {/* 搜索框 */}
+          {/* 搜索框和添加按钮 */}
           <div className="flex items-center space-x-4">
             <div className="flex-1">
               <input
@@ -251,6 +270,15 @@ const Questions = () => {
                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
               </svg>
               搜索
+            </button>
+            <button
+              onClick={handleAddQuestion}
+              className="btn btn-success px-6 py-2"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              </svg>
+              添加问题
             </button>
           </div>
           
@@ -521,7 +549,7 @@ const Questions = () => {
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  编辑问题信息
+                  {editingQuestion ? '编辑问题信息' : '添加新问题'}
                 </h3>
               </div>
               

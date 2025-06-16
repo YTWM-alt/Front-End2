@@ -91,6 +91,19 @@ const Feedbacks = () => {
     }
   };
 
+  // 添加反馈
+  const handleAddFeedback = () => {
+    setEditingFeedback(null); // 设置为null表示是添加模式
+    setEditFormData({
+      title: '',
+      content: '',
+      status: 'PENDING',
+      type: 'OTHER',
+      priority: 'MEDIUM'
+    });
+    setIsEditModalOpen(true);
+  };
+
   // 编辑反馈
   const handleEditFeedback = (feedback) => {
     setEditingFeedback(feedback);
@@ -104,24 +117,30 @@ const Feedbacks = () => {
     setIsEditModalOpen(true);
   };
 
-  // 保存反馈编辑
+  // 保存反馈（创建或更新）
   const handleSaveFeedback = async () => {
-    if (!editingFeedback) return;
-    
     try {
-      const response = await feedbackAPI.updateFeedback(editingFeedback.id, editFormData);
+      let response;
+      if (editingFeedback) {
+        // 更新反馈
+        response = await feedbackAPI.updateFeedback(editingFeedback.id, editFormData);
+      } else {
+        // 创建反馈
+        response = await feedbackAPI.createFeedback(editFormData);
+      }
+      
       if (response.success) {
-        alert('反馈信息更新成功');
+        alert(editingFeedback ? '反馈信息更新成功' : '反馈创建成功');
         setIsEditModalOpen(false);
         setEditingFeedback(null);
         setEditFormData({});
         // 重新加载当前页数据
         loadFeedbacks(currentPage, searchTerm, statusFilter, typeFilter, priorityFilter);
       } else {
-        alert(response.message || '更新失败');
+        alert(response.message || (editingFeedback ? '更新失败' : '创建失败'));
       }
     } catch (err) {
-      alert(err.message || '更新失败');
+      alert(err.message || (editingFeedback ? '更新失败' : '创建失败'));
     }
   };
 
@@ -249,7 +268,7 @@ const Feedbacks = () => {
       {/* 搜索和筛选栏 */}
       <div className="card">
         <div className="card-body space-y-4">
-          {/* 搜索框 */}
+          {/* 搜索框和添加按钮 */}
           <div className="flex items-center space-x-4">
             <div className="flex-1">
               <input
@@ -269,6 +288,15 @@ const Feedbacks = () => {
                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
               </svg>
               搜索
+            </button>
+            <button
+              onClick={handleAddFeedback}
+              className="btn btn-success px-6 py-2"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              </svg>
+              添加反馈
             </button>
           </div>
           
@@ -558,7 +586,7 @@ const Feedbacks = () => {
                       <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
                     </svg>
                   </div>
-                  编辑反馈信息
+                  {editingFeedback ? '编辑反馈信息' : '添加新反馈'}
                 </h3>
               </div>
               

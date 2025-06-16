@@ -59,6 +59,20 @@ const Users = () => {
     }
   };
 
+  // 添加用户
+  const handleAddUser = () => {
+    setEditingUser(null); // 设置为null表示是添加模式
+    setEditFormData({
+      username: '',
+      email: '',
+      status: 'active',
+      real_name: '',
+      phone: '',
+      bio: ''
+    });
+    setIsEditModalOpen(true);
+  };
+
   // 编辑用户
   const handleEditUser = (user) => {
     setEditingUser(user);
@@ -67,27 +81,36 @@ const Users = () => {
       email: user.email,
       status: user.status,
       real_name: user.real_name || '',
-      phone: user.phone || ''
+      phone: user.phone || '',
+      bio: user.bio || ''
     });
     setIsEditModalOpen(true);
   };
 
-  // 保存用户更新
+  // 保存用户（创建或更新）
   const handleSaveUser = async () => {
     try {
-      const response = await userAPI.updateUser(editingUser.id, editFormData);
+      let response;
+      if (editingUser) {
+        // 更新用户
+        response = await userAPI.updateUser(editingUser.id, editFormData);
+      } else {
+        // 创建用户
+        response = await userAPI.createUser(editFormData);
+      }
+      
       if (response.success) {
-        alert('用户信息更新成功');
+        alert(editingUser ? '用户信息更新成功' : '用户创建成功');
         setIsEditModalOpen(false);
         setEditingUser(null);
         setEditFormData({});
         // 重新加载当前页数据
         loadUsers(currentPage, searchTerm, statusFilter);
       } else {
-        alert(response.message || '更新失败');
+        alert(response.message || (editingUser ? '更新失败' : '创建失败'));
       }
     } catch (err) {
-      alert(err.message || '更新失败');
+      alert(err.message || (editingUser ? '更新失败' : '创建失败'));
     }
   };
 
@@ -185,7 +208,7 @@ const Users = () => {
       {/* 搜索和筛选栏 */}
       <div className="card">
         <div className="card-body space-y-4">
-          {/* 搜索框 */}
+          {/* 搜索框和添加按钮 */}
           <div className="flex items-center space-x-4">
             <div className="flex-1">
               <input
@@ -205,6 +228,15 @@ const Users = () => {
                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
               </svg>
               搜索
+            </button>
+            <button
+              onClick={handleAddUser}
+              className="btn btn-success px-6 py-2"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+              </svg>
+              添加用户
             </button>
           </div>
           
@@ -398,7 +430,7 @@ const Users = () => {
               WebkitBackdropFilter: 'blur(20px)',
               position: 'relative',
               width: '380px',
-              height: '380px',
+              height: '450px',
               overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -411,7 +443,7 @@ const Users = () => {
                       <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                     </svg>
                   </div>
-                  编辑用户信息
+                  {editingUser ? '编辑用户信息' : '添加新用户'}
                 </h3>
               </div>
               
@@ -460,7 +492,16 @@ const Users = () => {
                   />
                 </div>
                 
-
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">个人简介</label>
+                  <textarea
+                    value={editFormData.bio || ''}
+                    onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-xs"
+                    placeholder="请输入个人简介"
+                    rows="2"
+                  />
+                </div>
                 
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">状态</label>

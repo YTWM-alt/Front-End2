@@ -42,6 +42,14 @@ export const userAPI = {
     return apiRequest(`/users?${searchParams}`);
   },
   
+  // 创建用户
+  createUser: (userData) => {
+    return apiRequest('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    });
+  },
+  
   // 更新用户信息
   updateUser: (userId, userData) => {
     return apiRequest(`/users/${userId}`, {
@@ -62,6 +70,14 @@ export const questionAPI = {
   getQuestions: (params = {}) => {
     const searchParams = new URLSearchParams(params);
     return apiRequest(`/questions?${searchParams}`);
+  },
+  
+  // 创建问题
+  createQuestion: (questionData) => {
+    return apiRequest('/questions', {
+      method: 'POST',
+      body: JSON.stringify(questionData)
+    });
   },
   
   // 更新问题信息
@@ -111,6 +127,14 @@ export const feedbackAPI = {
   getFeedbacks: (params = {}) => {
     const searchParams = new URLSearchParams(params);
     return apiRequest(`/feedbacks?${searchParams}`);
+  },
+  
+  // 创建反馈
+  createFeedback: (feedbackData) => {
+    return apiRequest('/feedbacks', {
+      method: 'POST',
+      body: JSON.stringify(feedbackData)
+    });
   },
   
   // 更新反馈信息

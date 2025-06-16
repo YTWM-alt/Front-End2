@@ -203,6 +203,60 @@ def delete_user(user_id):
         logging.error(f"删除用户失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@admin_bp.route('/users', methods=['POST'])
+def create_user():
+    """创建新用户"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'message': '无效的请求数据'}), 400
+        
+        # 验证必填字段
+        if not data.get('username') or not data.get('email'):
+            return jsonify({'success': False, 'message': '用户名和邮箱是必填字段'}), 400
+        
+        # 检查用户名和邮箱是否已存在
+        check_query = "SELECT id FROM users WHERE (username = %s OR email = %s) AND is_deleted = 0"
+        existing = execute_query(check_query, [data['username'], data['email']])
+        if existing:
+            return jsonify({'success': False, 'message': '用户名或邮箱已存在'}), 400
+        
+        # 创建新用户
+        insert_query = """
+        INSERT INTO users (username, email, password_hash, nickname, phone, bio,
+                          is_active, created_at, updated_at, login_count, is_deleted)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        now = datetime.now()
+        is_active = 1 if data.get('status', 'active') == 'active' else 0
+        password_hash = 'temp_hash_' + str(int(now.timestamp()))  # 临时密码哈希
+        
+        params = [
+            data['username'],
+            data['email'], 
+            password_hash,
+            data.get('real_name', ''),
+            data.get('phone', ''),
+            data.get('bio', ''),
+            is_active,
+            now,
+            now,
+            0,
+            0  # is_deleted = 0 (未删除)
+        ]
+        
+        result = execute_query(insert_query, params, fetch=False)
+        
+        if result and result > 0:
+            return jsonify({'success': True, 'message': '用户创建成功'})
+        else:
+            return jsonify({'success': False, 'message': '用户创建失败'}), 500
+            
+    except Exception as e:
+        logging.error(f"创建用户失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @admin_bp.route('/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
     """更新用户"""
@@ -354,6 +408,54 @@ def delete_question(question_id):
             
     except Exception as e:
         logging.error(f"删除问题失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/questions', methods=['POST'])
+def create_question():
+    """创建新问题"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'message': '无效的请求数据'}), 400
+        
+        # 验证必填字段
+        if not data.get('title') or not data.get('content'):
+            return jsonify({'success': False, 'message': '标题和内容是必填字段'}), 400
+        
+        # 创建新问题
+        insert_query = """
+        INSERT INTO questions (title, content, user_id, status, priority, grade_level, 
+                              subject, category, view_count, answer_count, created_at, updated_at, is_deleted)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        now = datetime.now()
+        
+        params = [
+            data['title'],
+            data['content'],
+            data.get('user_id', 1),  # 默认用户ID为1，实际使用时应该从登录用户获取
+            data.get('status', 'pending'),
+            data.get('priority', 0),
+            data.get('grade_level', ''),
+            data.get('subject', ''),
+            data.get('category', ''),
+            0,  # 初始浏览次数
+            0,  # 初始回答数量
+            now,
+            now,
+            0  # is_deleted = 0 (未删除)
+        ]
+        
+        result = execute_query(insert_query, params, fetch=False)
+        
+        if result and result > 0:
+            return jsonify({'success': True, 'message': '问题创建成功'})
+        else:
+            return jsonify({'success': False, 'message': '问题创建失败'}), 500
+            
+    except Exception as e:
+        logging.error(f"创建问题失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/questions/<int:question_id>', methods=['PUT'])
@@ -609,6 +711,54 @@ def delete_feedback(feedback_id):
             
     except Exception as e:
         logging.error(f"删除反馈失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/feedbacks', methods=['POST'])
+def create_feedback():
+    """创建新反馈"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'message': '无效的请求数据'}), 400
+        
+        # 验证必填字段
+        if not data.get('content'):
+            return jsonify({'success': False, 'message': '反馈内容是必填字段'}), 400
+        
+        # 创建新反馈
+        insert_query = """
+        INSERT INTO feedbacks (title, content, user_id, type, status, priority, 
+                              created_at, updated_at, is_deleted)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        now = datetime.now()
+        
+        # 自动生成标题（使用内容的前30个字符）
+        content = data['content']
+        auto_title = content[:30] + ('...' if len(content) > 30 else '')
+        
+        params = [
+            auto_title,  # 使用自动生成的标题
+            content,
+            data.get('user_id', 1),  # 默认用户ID为1，实际使用时应该从登录用户获取
+            data.get('type', 'OTHER'),
+            data.get('status', 'PENDING'),
+            data.get('priority', 'MEDIUM'),
+            now,
+            now,
+            0  # is_deleted = 0 (未删除)
+        ]
+        
+        result = execute_query(insert_query, params, fetch=False)
+        
+        if result and result > 0:
+            return jsonify({'success': True, 'message': '反馈创建成功'})
+        else:
+            return jsonify({'success': False, 'message': '反馈创建失败'}), 500
+            
+    except Exception as e:
+        logging.error(f"创建反馈失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @admin_bp.route('/feedbacks/<int:feedback_id>', methods=['PUT'])
