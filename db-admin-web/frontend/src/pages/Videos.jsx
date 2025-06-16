@@ -252,6 +252,16 @@ const Videos = () => {
                 loadVideos(1, searchTerm, e.target.value);
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+              style={{
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'calc(100% - 0.5rem) center',
+                backgroundSize: '16px 16px',
+                paddingRight: '2.5rem'
+              }}
             >
               {statusOptions.map(option => (
                 <option key={option.value} value={option.value}>
@@ -505,69 +515,71 @@ const Videos = () => {
           onClick={handleCancelEdit}
         >
           <div 
-            className="bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ease-out max-w-2xl w-full mx-4 animate-modal-enter"
+            className="bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ease-out animate-modal-enter modal-scrollbar"
             style={{
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
               background: 'rgba(255, 255, 255, 0.98)',
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               position: 'relative',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              width: '450px',
-              maxWidth: '90vw'
+              width: '380px',
+              height: '380px',
+              overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-4">
+              <div className="mb-3">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <div className="w-7 h-7 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                  <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h7.5A2.25 2.25 0 0013 13.75v-7.5A2.25 2.25 0 0010.75 4h-7.5zM19 4.75a.75.75 0 00-1.28-.53l-3 3a.75.75 0 00-.22.53v4.5c0 .199.079.39.22.53l3 3a.75.75 0 001.28-.53V4.75z" />
                     </svg>
                   </div>
                   编辑视频信息
                 </h3>
-                <button
-                  onClick={handleCancelEdit}
-                  className="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1.5 hover:bg-gray-100"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">视频标题</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">视频标题</label>
                   <input
                     type="text"
                     value={editFormData.title || ''}
                     onChange={(e) => setEditFormData({...editFormData, title: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-xs"
                     placeholder="请输入视频标题"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">视频描述</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">视频描述</label>
                   <textarea
                     value={editFormData.description || ''}
                     onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
                     rows="3"
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none text-sm"
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none text-xs"
                     placeholder="请输入视频描述"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">状态</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">状态</label>
                   <select
                     value={editFormData.status || ''}
                     onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white focus:bg-white text-xs"
+                    style={{
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none',
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'calc(100% - 0.5rem) center',
+                      backgroundSize: '16px 16px',
+                      paddingRight: '2.5rem',
+                      paddingLeft: '0.625rem'
+                    }}
                   >
                     {statusOptions.filter(option => option.value !== '').map(option => (
                       <option key={option.value} value={option.value}>
@@ -578,21 +590,65 @@ const Videos = () => {
                 </div>
               </div>
               
-              <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
                 <button
                   onClick={handleCancelEdit}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'rgba(59, 130, 246, 0.7)',
+                    backgroundColor: 'rgba(239, 246, 255, 0.6)',
+                    border: '1px solid rgba(191, 219, 254, 0.8)',
+                    borderRadius: '6px',
+                    minWidth: '45px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.9)';
+                    e.target.style.borderColor = 'rgba(147, 197, 253, 0.9)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.6)';
+                    e.target.style.borderColor = 'rgba(191, 219, 254, 0.8)';
+                  }}
                 >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg style={{ width: '12px', height: '12px' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                   取消
                 </button>
                 <button
                   onClick={handleSaveVideo}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'rgba(59, 130, 246, 0.8)',
+                    backgroundColor: 'rgba(239, 246, 255, 0.8)',
+                    border: '1px solid rgba(147, 197, 253, 0.9)',
+                    borderRadius: '6px',
+                    minWidth: '45px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(219, 234, 254, 0.9)';
+                    e.target.style.borderColor = 'rgba(59, 130, 246, 0.9)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.8)';
+                    e.target.style.borderColor = 'rgba(147, 197, 253, 0.9)';
+                  }}
                 >
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                  <svg style={{ width: '12px', height: '12px' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   保存
@@ -604,6 +660,38 @@ const Videos = () => {
       )}
 
       <style jsx>{`
+        :root {
+          --primary-color: #0ea5e9;
+          --secondary-color: #06b6d4;
+          --accent-color: #8b5cf6;
+          --text-primary: #1f2937;
+          --text-secondary: #6b7280;
+          --text-inverse: #ffffff;
+          --bg-primary: #ffffff;
+          --bg-secondary: #f8fafc;
+          --border-color: #e5e7eb;
+          --border-primary: #d1d5db;
+          --error-color: #ef4444;
+          --error-dark: #dc2626;
+          --spacing-2: 0.5rem;
+          --spacing-4: 1rem;
+          --spacing-5: 1.25rem;
+          --spacing-6: 1.5rem;
+          --spacing-8: 2rem;
+          --border-radius-lg: 0.5rem;
+          --border-radius-xl: 0.75rem;
+          --border-radius-2xl: 1rem;
+          --text-sm: 0.875rem;
+          --text-base: 1rem;
+          --text-lg: 1.125rem;
+          --text-3xl: 1.875rem;
+          --text-4xl: 2.25rem;
+          --transition-normal: 0.15s ease-in-out;
+          --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
         .videos-page {
           padding: var(--spacing-6);
           max-width: 1400px;
@@ -683,6 +771,14 @@ const Videos = () => {
           font-weight: 800;
           margin: 0 0 var(--spacing-2);
           line-height: 1.2;
+        }
+
+        .gradient-text {
+          background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          color: transparent;
         }
 
         .page-subtitle {
@@ -847,6 +943,39 @@ const Videos = () => {
           transform: translateY(-2px);
         }
 
+        /* 下拉选择框样式优化 */
+        .videos-page select {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          background-repeat: no-repeat;
+          background-position: calc(100% - 0.5rem) center !important;
+          background-size: 16px 16px !important;
+          padding-right: 2.5rem !important;
+          direction: ltr;
+        }
+
+        .videos-page select:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .videos-page select::-ms-expand {
+          display: none;
+        }
+
+        .videos-page select option {
+          padding: 8px 12px;
+          background: white;
+          color: #374151;
+        }
+
+        .videos-page select option:hover,
+        .videos-page select option:focus {
+          background: #f3f4f6;
+        }
+
         /* 表格增强样式 */
         .videos-page :global(table) {
           border-radius: var(--border-radius-xl);
@@ -986,6 +1115,36 @@ const Videos = () => {
 
         .animate-modal-enter {
           animation: modal-enter 0.3s ease-out;
+        }
+
+        /* 自定义滚动条样式 */
+        .modal-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 3px;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(156, 163, 175, 0.3);
+          border-radius: 3px;
+          transition: all 0.2s ease;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(156, 163, 175, 0.5);
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-corner {
+          background: transparent;
+        }
+
+        /* Firefox滚动条样式 */
+        .modal-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
         }
 
         /* 响应式设计 */

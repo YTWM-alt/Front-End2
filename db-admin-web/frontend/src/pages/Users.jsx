@@ -14,7 +14,7 @@ const Users = () => {
   const [perPage] = useState(20);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+
 
   // 编辑模态框状态
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,15 +29,10 @@ const Users = () => {
     { value: 'banned', label: '已禁用' }
   ];
 
-  const roleOptions = [
-    { value: '', label: '全部角色' },
-    { value: 'student', label: '学生' },
-    { value: 'teacher', label: '教师' },
-    { value: 'admin', label: '管理员' }
-  ];
+
 
   // 加载用户数据
-  const loadUsers = async (page = 1, search = '', status = '', role = '') => {
+  const loadUsers = async (page = 1, search = '', status = '') => {
     try {
       setLoading(true);
       setError(null);
@@ -45,8 +40,7 @@ const Users = () => {
         page, 
         per_page: perPage, 
         search, 
-        status, 
-        role 
+        status
       });
       
       if (response.success) {
@@ -71,11 +65,9 @@ const Users = () => {
     setEditFormData({
       username: user.username,
       email: user.email,
-      role: user.role,
       status: user.status,
       real_name: user.real_name || '',
-      phone: user.phone || '',
-      bio: user.bio || ''
+      phone: user.phone || ''
     });
     setIsEditModalOpen(true);
   };
@@ -90,7 +82,7 @@ const Users = () => {
         setEditingUser(null);
         setEditFormData({});
         // 重新加载当前页数据
-        loadUsers(currentPage, searchTerm, statusFilter, roleFilter);
+        loadUsers(currentPage, searchTerm, statusFilter);
       } else {
         alert(response.message || '更新失败');
       }
@@ -117,7 +109,7 @@ const Users = () => {
       if (response.success) {
         alert('用户删除成功');
         // 重新加载当前页数据
-        loadUsers(currentPage, searchTerm, statusFilter, roleFilter);
+        loadUsers(currentPage, searchTerm, statusFilter);
       } else {
         alert(response.message || '删除失败');
       }
@@ -129,21 +121,20 @@ const Users = () => {
   // 搜索处理
   const handleSearch = () => {
     setCurrentPage(1);
-    loadUsers(1, searchTerm, statusFilter, roleFilter);
+    loadUsers(1, searchTerm, statusFilter);
   };
 
   // 重置筛选
   const handleResetFilters = () => {
     setSearchTerm('');
     setStatusFilter('');
-    setRoleFilter('');
     setCurrentPage(1);
-    loadUsers(1, '', '', '');
+    loadUsers(1, '', '');
   };
 
   // 页码变化
   const handlePageChange = (page) => {
-    loadUsers(page, searchTerm, statusFilter, roleFilter);
+    loadUsers(page, searchTerm, statusFilter);
   };
 
   // 格式化日期
@@ -162,15 +153,7 @@ const Users = () => {
     return statusMap[status] || { text: status, class: 'bg-gray-100 text-gray-800' };
   };
 
-  // 格式化角色
-  const formatRole = (role) => {
-    const roleMap = {
-      student: { text: '学生', class: 'bg-blue-100 text-blue-800' },
-      teacher: { text: '教师', class: 'bg-purple-100 text-purple-800' },
-      admin: { text: '管理员', class: 'bg-orange-100 text-orange-800' }
-    };
-    return roleMap[role] || { text: role, class: 'bg-gray-100 text-gray-800' };
-  };
+
 
   // 组件挂载时加载数据
   useEffect(() => {
@@ -232,27 +215,11 @@ const Users = () => {
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
-                loadUsers(1, searchTerm, e.target.value, roleFilter);
+                loadUsers(1, searchTerm, e.target.value);
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
             >
               {statusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setCurrentPage(1);
-                loadUsers(1, searchTerm, statusFilter, e.target.value);
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
-            >
-              {roleOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -286,7 +253,7 @@ const Users = () => {
             <div className="text-center py-12">
               <p className="text-red-500 mb-4">❌ {error}</p>
               <button
-                onClick={() => loadUsers(currentPage, searchTerm, statusFilter, roleFilter)}
+                onClick={() => loadUsers(currentPage, searchTerm, statusFilter)}
                 className="btn btn-warning"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -317,9 +284,6 @@ const Users = () => {
                         联系方式
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        角色
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         状态
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -333,7 +297,6 @@ const Users = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {users.map((user) => {
                       const statusInfo = formatStatus(user.status);
-                      const roleInfo = formatRole(user.role);
                       return (
                         <tr key={user.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4">
@@ -356,11 +319,6 @@ const Users = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{user.email}</div>
                             <div className="text-sm text-gray-500">{user.phone || '未设置电话'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleInfo.class}`}>
-                              {roleInfo.text}
-                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.class}`}>
@@ -440,7 +398,7 @@ const Users = () => {
               WebkitBackdropFilter: 'blur(20px)',
               position: 'relative',
               width: '380px',
-              height: '480px',
+              height: '380px',
               overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -502,32 +460,7 @@ const Users = () => {
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">角色</label>
-                  <select
-                    value={editFormData.role || ''}
-                    onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white focus:bg-white text-xs"
-                    style={{
-                      appearance: 'none',
-                      WebkitAppearance: 'none',
-                      MozAppearance: 'none',
-                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'calc(100% - 0.5rem) center',
-                      backgroundSize: '16px 16px',
-                      paddingRight: '2.5rem',
-                      paddingLeft: '0.625rem'
-                    }}
-                  >
-                    <option value="">请选择角色</option>
-                    {roleOptions.filter(option => option.value !== '').map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
                 
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">状态</label>
@@ -556,33 +489,68 @@ const Users = () => {
                   </select>
                 </div>
                 
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">个人简介</label>
-                  <textarea
-                    value={editFormData.bio || ''}
-                    onChange={(e) => setEditFormData({...editFormData, bio: e.target.value})}
-                    rows="2"
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white resize-none text-xs"
-                    placeholder="请输入个人简介"
-                  />
-                </div>
+
               </div>
               
               <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
                 <button
                   onClick={handleCancelEdit}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-all duration-200"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'rgba(59, 130, 246, 0.7)',
+                    backgroundColor: 'rgba(239, 246, 255, 0.6)',
+                    border: '1px solid rgba(191, 219, 254, 0.8)',
+                    borderRadius: '6px',
+                    minWidth: '45px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.9)';
+                    e.target.style.borderColor = 'rgba(147, 197, 253, 0.9)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.6)';
+                    e.target.style.borderColor = 'rgba(191, 219, 254, 0.8)';
+                  }}
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  <svg style={{ width: '12px', height: '12px' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                   取消
                 </button>
                 <button
                   onClick={handleSaveUser}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-md transition-all duration-200 shadow-md hover:shadow-lg"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'rgba(59, 130, 246, 0.8)',
+                    backgroundColor: 'rgba(239, 246, 255, 0.8)',
+                    border: '1px solid rgba(147, 197, 253, 0.9)',
+                    borderRadius: '6px',
+                    minWidth: '45px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(219, 234, 254, 0.9)';
+                    e.target.style.borderColor = 'rgba(59, 130, 246, 0.9)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 246, 255, 0.8)';
+                    e.target.style.borderColor = 'rgba(147, 197, 253, 0.9)';
+                  }}
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  <svg style={{ width: '12px', height: '12px' }} viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   保存

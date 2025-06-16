@@ -155,7 +155,14 @@ def get_users():
         
         # 获取用户列表
         users_query = f"""
-        SELECT id, username, email, nickname, is_active, last_login, login_count, 
+        SELECT id, username, email, 
+               COALESCE(nickname, '') as real_name,
+               CASE 
+                   WHEN is_active = 1 THEN 'active' 
+                   ELSE 'inactive' 
+               END as status,
+               'student' as role,
+               is_active, last_login, login_count, 
                created_at, phone, bio
         FROM users {where_clause}
         ORDER BY created_at DESC
@@ -170,9 +177,9 @@ def get_users():
             'data': {
                 'users': users or [],
                 'total': total,
-                'page': page,
+                'current_page': page,
                 'per_page': per_page,
-                'pages': (total + per_page - 1) // per_page
+                'total_pages': (total + per_page - 1) // per_page
             }
         })
         
@@ -216,17 +223,35 @@ def update_user(user_id):
             update_fields.append('email = %s')
             params.append(data['email'])
         
-        if 'nickname' in data:
+        if 'real_name' in data:
             update_fields.append('nickname = %s')
-            params.append(data['nickname'])
+            params.append(data['real_name'])
         
         if 'phone' in data:
             update_fields.append('phone = %s')
             params.append(data['phone'])
         
+        if 'bio' in data:
+            update_fields.append('bio = %s')
+            params.append(data['bio'])
+        
+        # 处理状态字段
+        if 'status' in data:
+            if data['status'] == 'active':
+                update_fields.append('is_active = %s')
+                params.append(1)
+            elif data['status'] == 'inactive':
+                update_fields.append('is_active = %s')
+                params.append(0)
+        
         if 'is_active' in data:
             update_fields.append('is_active = %s')
             params.append(data['is_active'])
+        
+        # 注意：role字段目前数据库中可能没有，这里先忽略
+        # if 'role' in data:
+        #     update_fields.append('role = %s')
+        #     params.append(data['role'])
         
         if not update_fields:
             return jsonify({'success': False, 'message': '没有要更新的字段'}), 400
