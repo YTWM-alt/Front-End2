@@ -2,8 +2,8 @@
 
 // 应用配置
 export const APP_CONFIG = {
-  name: '未决定',
-  description: 'AI智能驱动，连接全球知识资源',
+  name: '智映教匠',
+  description: 'AI智慧赋能，创造高效视频课',
   version: '1.0.0',
   author: 'AI Platform Team'
 };

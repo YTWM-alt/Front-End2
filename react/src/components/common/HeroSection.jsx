@@ -11,7 +11,7 @@ const HeroSection = ({ onSearch, searchTerm }) => {
     <section className="hero">
       <div className="hero-content">
         <h1>
-          <span>万物皆可问</span> 问呗
+          <span>知识点</span> 皆成课
         </h1>
         <p className="hero-description">
           {APP_CONFIG.description}

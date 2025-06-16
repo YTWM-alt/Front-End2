@@ -10,11 +10,18 @@ logger = logging.getLogger(__name__)
 
 @bp.route('/save-question', methods=['POST'])
 def save_question():
-    """保存问题 - 使用数据库"""
+    """保存问题 - 使用数据库，支持筛选信息"""
     db_session = None
     try:
         data = request.get_json()
         question_text = data.get('question', '').strip()
+        
+        # 获取筛选信息
+        filters = data.get('filters', {})
+        grade = filters.get('grade', '')
+        grade_label = filters.get('gradeLabel', '')
+        subject = filters.get('subject', '')
+        subject_label = filters.get('subjectLabel', '')
         
         if not question_text:
             return jsonify({
@@ -33,14 +40,37 @@ def save_question():
             }), 400
         
         # 生成问题标题（取前50个字符）
-        title = question_text[:50] + ('...' if len(question_text) > 50 else '')
+        base_title = question_text[:50] + ('...' if len(question_text) > 50 else '')
+        
+        # 如果有筛选信息，添加到标题中
+        if grade_label or subject_label:
+            filter_prefix = []
+            if grade_label:
+                filter_prefix.append(grade_label)
+            if subject_label:
+                filter_prefix.append(subject_label)
+            title = f"[{'-'.join(filter_prefix)}] {base_title}"
+        else:
+            title = base_title
+        
+        # 构建完整的筛选标签JSON
+        filter_tags = {
+            'grade': grade,
+            'grade_label': grade_label,
+            'subject': subject,
+            'subject_label': subject_label,
+            'timestamp': datetime.now().isoformat()
+        }
         
         # 创建问题记录
         question = Question(
             title=title,
             content=question_text,
             user_id=user.id,
-            status='pending'
+            status='pending',
+            grade_level=grade,
+            subject=subject_label,
+            filter_tags=filter_tags
         )
         
         db_session.add(question)
@@ -50,14 +80,15 @@ def save_question():
         timestamp = question.created_at.strftime('%Y-%m-%d_%H-%M-%S')
         filename = f"{timestamp}.txt"
         
-        logger.info(f"问题已保存到数据库: ID {question.id}")
+        logger.info(f"问题已保存到数据库: ID {question.id}, 筛选信息: {filter_tags}")
         
         return jsonify({
             'success': True,
             'message': '问题保存成功',
             'question_id': question.id,
             'filename': filename,  # 为了兼容性保留
-            'timestamp': question.created_at.isoformat()
+            'timestamp': question.created_at.isoformat(),
+            'filters': filter_tags  # 返回筛选信息
         })
         
     except Exception as e:
@@ -135,13 +166,15 @@ def save_to_requestion():
 
 @bp.route('/', methods=['GET'])
 def get_questions():
-    """获取所有问题 - 使用数据库"""
+    """获取所有问题 - 使用数据库，支持筛选查询"""
     db_session = None
     try:
         db_session = get_db_session()
         
         # 获取查询参数
         status = request.args.get('status')  # pending, answered, requestion
+        grade_level = request.args.get('grade_level')  # primary, junior, senior, university
+        subject = request.args.get('subject')  # 学科名称
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         
@@ -150,6 +183,12 @@ def get_questions():
         
         if status:
             query = query.filter_by(status=status)
+        
+        if grade_level:
+            query = query.filter_by(grade_level=grade_level)
+            
+        if subject:
+            query = query.filter_by(subject=subject)
         
         # 分页和排序
         query = query.order_by(Question.created_at.desc())
@@ -172,16 +211,42 @@ def get_questions():
                 'created_at': q.created_at.strftime('%Y-%m-%d %H:%M:%S') if q.created_at else None,
                 'updated_at': q.updated_at.strftime('%Y-%m-%d %H:%M:%S') if q.updated_at else None,
                 'user_id': q.user_id,
+                # 筛选信息
+                'category': q.category,
+                'grade_level': q.grade_level,
+                'subject': q.subject,
+                'filter_tags': q.filter_tags,
                 # 为了兼容性，生成类似文件名的标识
                 'filename': f"{q.created_at.strftime('%Y-%m-%d_%H-%M-%S')}.txt" if q.created_at else f"question_{q.id}.txt"
             }
             question_list.append(question_data)
         
-        logger.info(f"成功获取 {len(question_list)} 个问题（数据库版本）")
+        # 获取筛选统计信息
+        filter_stats = {
+            'grade_levels': {},
+            'subjects': {}
+        }
+        
+        # 统计年级分布
+        grade_stats = db_session.query(Question.grade_level, db_session.query(Question).filter_by(is_deleted=False, grade_level=Question.grade_level).count().label('count')).filter(Question.is_deleted==False, Question.grade_level.isnot(None)).group_by(Question.grade_level).all()
+        
+        for grade, count in grade_stats:
+            if grade:
+                filter_stats['grade_levels'][grade] = count
+        
+        # 统计学科分布
+        subject_stats = db_session.query(Question.subject, db_session.query(Question).filter_by(is_deleted=False, subject=Question.subject).count().label('count')).filter(Question.is_deleted==False, Question.subject.isnot(None)).group_by(Question.subject).all()
+        
+        for subject_name, count in subject_stats:
+            if subject_name:
+                filter_stats['subjects'][subject_name] = count
+        
+        logger.info(f"成功获取 {len(question_list)} 个问题（数据库版本，支持筛选）")
         
         return jsonify({
             'success': True,
             'questions': question_list,
+            'filter_stats': filter_stats,
             'pagination': {
                 'page': page,
                 'per_page': per_page,

@@ -305,6 +305,179 @@ nav {
     padding: 0 42px;
 }
 
+/* 筛选栏样式 */
+.filter-bar {
+    margin-top: 20px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 16px 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(74, 111, 227, 0.1);
+}
+
+.filter-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 15px;
+    margin-right: 10px;
+}
+
+.filter-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-item {
+    position: relative;
+}
+
+.grade-btn {
+    background: var(--light);
+    border: 2px solid var(--light-border);
+    color: var(--dark);
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.grade-btn:hover {
+    background: rgba(74, 111, 227, 0.1);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.grade-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(74, 111, 227, 0.3);
+}
+
+.subject-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    border: 1px solid var(--light-border);
+    z-index: 100;
+    min-width: 200px;
+    animation: fadeInUp 0.3s ease;
+}
+
+/* 添加伪元素作为过渡区域，防止鼠标移动时菜单消失 */
+.subject-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: transparent;
+}
+
+.subject-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    max-width: 320px;
+}
+
+.subject-btn {
+    background: var(--light);
+    border: 1px solid var(--light-border);
+    color: var(--dark);
+    padding: 6px 10px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.subject-btn:hover {
+    background: rgba(74, 111, 227, 0.1);
+    border-color: var(--primary);
+}
+
+.subject-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.clear-filters-btn {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.clear-filters-btn:hover {
+    background: #ff1744;
+    transform: translateY(-2px);
+}
+
+.current-filters {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--light-border);
+}
+
+.filter-info {
+    font-size: 14px;
+    color: var(--gray);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-tag {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
 /* 学习容器样式 */
 .learning-container {
     display: none;
@@ -1042,6 +1215,71 @@ footer {
     .video-main {
         flex-direction: column;
     }
+    
+    /* 筛选栏移动端适配 */
+    .filter-bar {
+        padding: 12px 16px;
+        margin-top: 15px;
+    }
+    
+    .filter-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .filter-label {
+        font-size: 14px;
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    
+    .filter-options {
+        gap: 8px;
+    }
+    
+    .grade-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .subject-dropdown {
+        left: 0;
+        transform: none;
+        min-width: auto;
+        width: 100%;
+        max-width: 300px;
+        top: calc(100% + 2px);
+    }
+    
+    .subject-dropdown::before {
+        height: 4px;
+        top: -4px;
+    }
+    
+    .subject-grid {
+        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+        gap: 6px;
+    }
+    
+    .subject-btn {
+        padding: 5px 8px;
+        font-size: 11px;
+    }
+    
+    .clear-filters-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .filter-info {
+        font-size: 13px;
+    }
+    
+    .filter-tag {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
 }
 
 /* 响应式设计 - 小屏幕 */
@@ -1074,6 +1312,75 @@ footer {
     
     .user-profile {
         padding: 4px 12px 4px 4px;
+    }
+    
+    /* 筛选栏小屏幕优化 */
+    .filter-bar {
+        padding: 10px 12px;
+        border-radius: 12px;
+    }
+    
+    .filter-label {
+        font-size: 13px;
+        font-weight: 500;
+    }
+    
+    .grade-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 16px;
+    }
+    
+    .subject-dropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 280px;
+        max-height: 60vh;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+    
+    /* 小屏幕下不需要过渡区域，因为是固定位置弹窗 */
+    .subject-dropdown::before {
+        display: none;
+    }
+    
+    .subject-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        max-width: none;
+    }
+    
+    .subject-btn {
+        padding: 8px 4px;
+        font-size: 10px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    
+    .clear-filters-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 16px;
+    }
+    
+    .filter-tag {
+        padding: 2px 6px;
+        font-size: 10px;
+        border-radius: 8px;
+    }
+    
+    .current-filters {
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+    
+    .filter-info {
+        font-size: 12px;
+        gap: 4px;
     }
 }
 

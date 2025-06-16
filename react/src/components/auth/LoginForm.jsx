@@ -55,7 +55,7 @@ const LoginForm = ({ authHook, onSuccess, onError, onGoogleLogin, onSwitchToRegi
   return (
     <form onSubmit={handleSubmit} className="auth-form">
       <h2>欢迎回来</h2>
-      <p>继续在未决定平台上探索学习</p>
+      <p>继续在智映教匠平台上探索学习</p>
       
       {/* Google登录按钮 */}
       <button type="button" className="google-login" onClick={onGoogleLogin}>

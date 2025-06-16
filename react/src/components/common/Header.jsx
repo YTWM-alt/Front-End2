@@ -106,7 +106,15 @@ const Header = ({ authHook, onLoginClick, onLogout, onNavigate, currentPage }) =
           handleLogoClick();
         }}
       >
-        <i className="fas fa-lightbulb"></i>
+        <img 
+          src="/logo.png" 
+          alt="智映教匠Logo" 
+          style={{
+            width: '48px',
+            height: '48px',
+            objectFit: 'contain'
+          }}
+        />
         <span className="logo-text">{APP_CONFIG.name}</span>
       </a>
 

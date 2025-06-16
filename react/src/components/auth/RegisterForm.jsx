@@ -56,7 +56,7 @@ const RegisterForm = ({ authHook, onSuccess, onError, onGoogleLogin, onSwitchToL
   return (
     <form onSubmit={handleSubmit} className="auth-form">
       <h2>创建账户</h2>
-      <p>加入未决定学习社区</p>
+      <p>加入智映教匠学习社区</p>
       
       {/* Google注册按钮 */}
       <button type="button" className="google-login" onClick={onGoogleLogin}>

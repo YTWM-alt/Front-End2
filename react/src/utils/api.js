@@ -40,22 +40,32 @@ const fetchAPI = async (url, options = {}) => {
 };
 
 /**
- * 保存用户问题到文件
+ * 保存用户问题到数据库，支持筛选信息
  * @param {string} question - 用户提问内容
+ * @param {Object} filters - 筛选信息（可选）
  * @returns {Promise<Object>} 保存结果
  */
-export const saveQuestionToFile = async (question) => {
+export const saveQuestionToFile = async (question, filters = null) => {
   try {
+    const requestBody = { question };
+    
+    // 如果有筛选信息，添加到请求体
+    if (filters) {
+      requestBody.filters = filters;
+    }
+    
     const result = await fetchAPI('/questions/save-question', {
       method: 'POST',
-      body: JSON.stringify({ question }),
+      body: JSON.stringify(requestBody),
     });
 
     return {
       success: true,
       message: result.message,
-      fileName: result.fileName,
-      timestamp: result.timestamp
+      fileName: result.fileName || result.filename, // 兼容两种格式
+      timestamp: result.timestamp,
+      questionId: result.question_id,
+      filters: result.filters
     };
   } catch (error) {
     return {
@@ -68,21 +78,47 @@ export const saveQuestionToFile = async (question) => {
 
 /**
  * 获取所有保存的问题列表
+ * @param {Object} filters - 筛选条件（可选）
  * @returns {Promise<Object>} 问题列表
  */
-export const getQuestionList = async () => {
+export const getQuestionList = async (filters = {}) => {
   try {
-    const result = await fetchAPI('/questions/');
+    // 构建查询参数
+    const queryParams = new URLSearchParams();
+    
+    if (filters.status) {
+      queryParams.append('status', filters.status);
+    }
+    if (filters.grade_level) {
+      queryParams.append('grade_level', filters.grade_level);
+    }
+    if (filters.subject) {
+      queryParams.append('subject', filters.subject);
+    }
+    if (filters.page) {
+      queryParams.append('page', filters.page);
+    }
+    if (filters.per_page) {
+      queryParams.append('per_page', filters.per_page);
+    }
+    
+    const url = `/questions/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const result = await fetchAPI(url);
+    
     return {
       success: true,
       questions: result.questions || [],
-      total: result.total || 0
+      filterStats: result.filter_stats || {},
+      pagination: result.pagination || {},
+      total: result.pagination?.total || 0
     };
   } catch (error) {
     return {
       success: false,
       message: error.message || '获取问题列表失败',
       questions: [],
+      filterStats: {},
+      pagination: {},
       total: 0
     };
   }

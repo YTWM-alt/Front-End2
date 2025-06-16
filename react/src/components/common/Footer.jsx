@@ -8,9 +8,9 @@ import { APP_CONFIG } from '../../utils/constants';
 const Footer = () => {
   return (
     <footer>
-      <div className="footer-brand">{APP_CONFIG.name} · AI平台</div>
-      <p className="footer-subtitle">演示文本</p>
-      <p>© 2023 {APP_CONFIG.name}</p>
+      <div className="footer-brand">{APP_CONFIG.name}· AI平台</div>
+      <p className="footer-subtitle">Academind· AI platform</p>
+      <p>广州大学网络空间安全学院</p>
     </footer>
   );
 };

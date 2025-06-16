@@ -600,7 +600,15 @@ const Feedback = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
               alignItems: 'center',
               gap: '8px'
             }}>
-              <i className="fas fa-lightbulb" style={{ color: 'var(--warning)' }}></i>
+              <img 
+                src="/logo.png" 
+                alt="智映教匠Logo" 
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  objectFit: 'contain'
+                }}
+              />
               反馈小贴士
             </h3>
             <div style={{

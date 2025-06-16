@@ -30,7 +30,7 @@ const App = () => {
   // 页面初始化效果
   useEffect(() => {
     // 页面加载完成后的初始化逻辑
-    console.log('未决定AI平台已加载');
+    console.log('智映教匠AI平台已加载');
     console.log('💾 输入内容自动保存到question文件夹');
   }, []);
 
@@ -68,10 +68,21 @@ const App = () => {
 
   /**
    * 处理搜索功能
-   * @param {string} term - 搜索词
+   * @param {string|object} searchData - 搜索词或搜索数据对象
    */
-  const handleSearch = (term) => {
-    if (!term || term.trim() === '') {
+  const handleSearch = (searchData) => {
+    let question = '';
+    let filters = {};
+    
+    // 处理搜索数据
+    if (typeof searchData === 'string') {
+      question = searchData;
+    } else if (searchData && typeof searchData === 'object') {
+      question = searchData.question || '';
+      filters = searchData.filters || {};
+    }
+    
+    if (!question || question.trim() === '') {
       showNotification('请输入搜索内容', 'error');
       return;
     }
@@ -80,13 +91,19 @@ const App = () => {
     setCurrentPage('home');
     
     // 更新搜索词
-    setSearchTerm(term.trim());
+    setSearchTerm(question.trim());
     
     // 显示学习容器
     setShowLearningContainer(true);
     
+    // 构建通知消息
+    let message = 'AI正在为您生成学习内容...';
+    if (filters.gradeLabel || filters.subjectLabel) {
+      message = `AI正在为您生成${filters.gradeLabel || ''}${filters.subjectLabel || ''}相关的学习内容...`;
+    }
+    
     // 显示成功通知
-    showNotification('AI正在为您生成学习内容...', 'success');
+    showNotification(message, 'success');
     
     // 滚动到学习容器
     setTimeout(() => {
