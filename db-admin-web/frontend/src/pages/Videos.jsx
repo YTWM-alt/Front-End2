@@ -20,6 +20,10 @@ const Videos = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState(null);
   const [editFormData, setEditFormData] = useState({});
+  
+  // 文件上传相关状态
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // 状态选项
   const statusOptions = [
@@ -62,6 +66,88 @@ const Videos = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 添加视频
+  const handleAddVideo = () => {
+    // 创建隐藏的文件输入元素
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'video/*';
+    fileInput.style.display = 'none';
+    
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      // 检查文件类型
+      const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv', 'video/flv', 'video/webm'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('不支持的文件类型。请选择视频文件（mp4、avi、mov、mkv、wmv、flv、webm）。');
+        return;
+      }
+      
+      // 检查文件大小（限制为500MB）
+      const maxSize = 500 * 1024 * 1024; // 500MB
+      if (file.size > maxSize) {
+        alert('文件大小不能超过500MB。');
+        return;
+      }
+      
+      try {
+        setUploading(true);
+        setUploadProgress(0);
+        
+        // 模拟上传进度
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            if (prev >= 90) {
+              clearInterval(progressInterval);
+              return 90;
+            }
+            return prev + Math.random() * 20;
+          });
+        }, 200);
+        
+        const response = await videoAPI.createVideo(file);
+        
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        
+        if (response.success) {
+          // 上传成功，自动打开编辑模态框
+          const newVideo = {
+            id: response.video.id,
+            title: response.video.title,
+            description: response.video.description,
+            status: response.video.status
+          };
+          
+          setEditingVideo(newVideo);
+          setEditFormData({
+            title: newVideo.title,
+            description: newVideo.description || '',
+            status: newVideo.status
+          });
+          setIsEditModalOpen(true);
+          
+          // 重新加载视频列表
+          loadVideos(currentPage, searchTerm, statusFilter);
+        } else {
+          alert(response.message || '上传失败');
+        }
+      } catch (err) {
+        alert(err.message || '上传失败');
+      } finally {
+        setUploading(false);
+        setUploadProgress(0);
+      }
+    };
+    
+    // 触发文件选择
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    document.body.removeChild(fileInput);
   };
 
   // 编辑视频
@@ -286,8 +372,45 @@ const Videos = () => {
       {/* 视频列表 */}
       <div className="card">
         <div className="card-header">
-          <h2 className="text-xl font-semibold">视频列表</h2>
-          <span className="text-sm text-secondary">共 {total} 个视频</span>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">视频列表</h2>
+              <span className="text-sm text-secondary">共 {total} 个视频</span>
+            </div>
+            <button
+              onClick={handleAddVideo}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: 'white',
+                backgroundColor: '#10b981',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#059669';
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#10b981';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.2)';
+              }}
+            >
+              <svg style={{ width: '16px', height: '16px' }} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              添加视频
+            </button>
+          </div>
         </div>
         
         <div className="card-body p-0">
@@ -395,17 +518,15 @@ const Videos = () => {
                                 </svg>
                                 编辑
                               </button>
-                              <a
-                                href={video.video_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => handlePreviewVideo(video)}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                               >
                                 <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M6.3 2.84A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.27l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                                 </svg>
                                 预览
-                              </a>
+                              </button>
                               <button
                                 onClick={() => handleDeleteVideo(video.id, video.title)}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
@@ -439,57 +560,123 @@ const Videos = () => {
 
       {/* 视频预览模态框 */}
       {previewVideo && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm" onClick={closePreview}>
-          <div className="bg-white rounded-2xl p-8 max-w-5xl max-h-[90vh] overflow-auto shadow-2xl border border-gray-200" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">{previewVideo.title}</h3>
-                <p className="text-sm text-gray-500">视频预览</p>
-              </div>
-              <button
-                onClick={closePreview}
-                className="modal-close-btn"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span>关闭</span>
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <div className="video-container">
-                <video
-                  controls
-                  className="video-player"
-                  src={videoAPI.getVideoStream(previewVideo.id)}
-                  poster="/api/placeholder-video.jpg"
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+          onClick={closePreview}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ease-out animate-modal-enter modal-scrollbar"
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              position: 'relative',
+              width: '85vw',
+              maxWidth: '1000px',
+              maxHeight: '85vh',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h7.5A2.25 2.25 0 0013 13.75v-7.5A2.25 2.25 0 0010.75 4h-7.5zM19 4.75a.75.75 0 00-1.28-.53l-3 3a.75.75 0 00-.22.53v4.5c0 .199.079.39.22.53l3 3a.75.75 0 001.28-.53V4.75z" />
+                      </svg>
+                    </div>
+                    {previewVideo.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">视频预览</p>
+                </div>
+                <button
+                  onClick={closePreview}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: 'rgba(239, 68, 68, 0.8)',
+                    backgroundColor: 'rgba(254, 242, 242, 0.8)',
+                    border: '1px solid rgba(252, 165, 165, 0.9)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(254, 226, 226, 0.9)';
+                    e.target.style.borderColor = 'rgba(239, 68, 68, 0.9)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(254, 242, 242, 0.8)';
+                    e.target.style.borderColor = 'rgba(252, 165, 165, 0.9)';
+                  }}
                 >
-                  您的浏览器不支持视频播放。
-                </video>
+                  <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  关闭
+                </button>
               </div>
-            </div>
-            
-            <div className="video-info-grid">
-              <div className="info-item">
-                <span className="info-label">📝 描述</span>
-                <span className="info-value">{previewVideo.description || '无描述'}</span>
+              
+              <div className="mb-4">
+                <div className="video-container">
+                  <video
+                    controls
+                    className="video-player"
+                    src={videoAPI.getVideoStream(previewVideo.id)}
+                    poster="/api/placeholder-video.jpg"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '50vh',
+                      borderRadius: '8px',
+                      backgroundColor: '#000'
+                    }}
+                  >
+                    您的浏览器不支持视频播放。
+                  </video>
+                </div>
               </div>
-              <div className="info-item">
-                <span className="info-label">📊 文件大小</span>
-                <span className="info-value">{formatFileSize(previewVideo.file_size)}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">⏱️ 时长</span>
-                <span className="info-value">{formatDuration(previewVideo.duration)}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">🎬 格式</span>
-                <span className="info-value">{previewVideo.format}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">📅 上传时间</span>
-                <span className="info-value">{formatDate(previewVideo.upload_time)}</span>
+              
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">📝 描述:</span>
+                  <span className="text-gray-900 font-medium">{previewVideo.description || '无描述'}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">📊 大小:</span>
+                  <span className="text-gray-900 font-medium">{formatFileSize(previewVideo.file_size)}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">⏱️ 时长:</span>
+                  <span className="text-gray-900 font-medium">{formatDuration(previewVideo.duration)}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">🎬 格式:</span>
+                  <span className="text-gray-900 font-medium">{previewVideo.format}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg col-span-2">
+                  <span className="text-gray-600">📅 上传:</span>
+                  <span className="text-gray-900 font-medium">{formatDate(previewVideo.upload_time)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -536,7 +723,7 @@ const Videos = () => {
                       <path d="M3.25 4A2.25 2.25 0 001 6.25v7.5A2.25 2.25 0 003.25 16h7.5A2.25 2.25 0 0013 13.75v-7.5A2.25 2.25 0 0010.75 4h-7.5zM19 4.75a.75.75 0 00-1.28-.53l-3 3a.75.75 0 00-.22.53v4.5c0 .199.079.39.22.53l3 3a.75.75 0 001.28-.53V4.75z" />
                     </svg>
                   </div>
-                  编辑视频信息
+                  {editingVideo && videos.some(v => v.id === editingVideo.id) ? '编辑视频信息' : '添加新视频'}
                 </h3>
               </div>
               
@@ -653,6 +840,62 @@ const Videos = () => {
                   </svg>
                   保存
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 上传进度模态框 */}
+      {uploading && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          style={{
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl transform transition-all duration-300 ease-out"
+            style={{
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              position: 'relative',
+              width: '400px',
+              padding: '32px'
+            }}
+          >
+            <div className="text-center">
+              <div className="mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-white animate-spin" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">正在上传视频</h3>
+              <p className="text-sm text-gray-600 mb-6">请稍候，视频正在上传到服务器...</p>
+              
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                <div 
+                  className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              
+              <div className="text-lg font-semibold text-green-600">
+                {Math.round(uploadProgress)}%
               </div>
             </div>
           </div>

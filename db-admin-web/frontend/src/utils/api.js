@@ -102,6 +102,18 @@ export const videoAPI = {
     return apiRequest(`/videos?${searchParams}`);
   },
   
+  // 创建视频（文件上传）
+  createVideo: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    return apiRequest('/videos', {
+      method: 'POST',
+      headers: {}, // 让浏览器自动设置Content-Type为multipart/form-data
+      body: formData
+    });
+  },
+  
   // 更新视频信息
   updateVideo: (videoId, videoData) => {
     return apiRequest(`/videos/${videoId}`, {
@@ -117,7 +129,7 @@ export const videoAPI = {
   
   // 获取视频流
   getVideoStream: (videoId) => {
-    return `${API_BASE_URL}/videos/${videoId}/stream`;
+    return `${API_BASE_URL}/static/video/${videoId}`;
   }
 };
 
