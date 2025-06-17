@@ -65,6 +65,7 @@ const Users = () => {
     setEditFormData({
       username: '',
       email: '',
+      password: '',
       status: 'active',
       real_name: '',
       phone: '',
@@ -79,6 +80,7 @@ const Users = () => {
     setEditFormData({
       username: user.username,
       email: user.email,
+      password: '', // 编辑时密码留空，如果填写则表示要修改密码
       status: user.status,
       real_name: user.real_name || '',
       phone: user.phone || '',
@@ -316,6 +318,9 @@ const Users = () => {
                         联系方式
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        密码
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         状态
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -351,6 +356,11 @@ const Users = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{user.email}</div>
                             <div className="text-sm text-gray-500">{user.phone || '未设置电话'}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-mono bg-gray-50 px-2 py-1 rounded border">
+                              {user.password || '未设置'}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.class}`}>
@@ -430,7 +440,7 @@ const Users = () => {
               WebkitBackdropFilter: 'blur(20px)',
               position: 'relative',
               width: '380px',
-              height: '450px',
+              height: '520px',
               overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -467,6 +477,20 @@ const Users = () => {
                     onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-xs"
                     placeholder="请输入邮箱"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    密码 {editingUser && <span className="text-gray-500">(留空则不修改)</span>}
+                  </label>
+                  <input
+                    type="password"
+                    value={editFormData.password || ''}
+                    onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-xs"
+                    placeholder={editingUser ? "输入新密码..." : "请输入密码"}
+                    autoComplete="new-password"
                   />
                 </div>
                 

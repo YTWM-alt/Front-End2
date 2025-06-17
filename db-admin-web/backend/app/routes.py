@@ -6,9 +6,14 @@ from datetime import datetime
 import os
 import uuid
 import subprocess
+import hashlib
 from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin', __name__)
+
+def hash_password(password):
+    """生成密码哈希值"""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def get_db_connection():
     """获取数据库连接"""
@@ -197,7 +202,7 @@ def get_users():
                END as status,
                'student' as role,
                is_active, last_login, login_count, 
-               created_at, phone, bio
+               created_at, phone, bio, password
         FROM users {where_clause}
         ORDER BY created_at DESC
         LIMIT %s OFFSET %s
@@ -249,6 +254,10 @@ def create_user():
         if not data.get('username') or not data.get('email'):
             return jsonify({'success': False, 'message': '用户名和邮箱是必填字段'}), 400
         
+        # 验证密码字段
+        if not data.get('password'):
+            return jsonify({'success': False, 'message': '密码是必填字段'}), 400
+        
         # 检查用户名和邮箱是否已存在
         check_query = "SELECT id FROM users WHERE (username = %s OR email = %s) AND is_deleted = 0"
         existing = execute_query(check_query, [data['username'], data['email']])
@@ -257,19 +266,20 @@ def create_user():
         
         # 创建新用户
         insert_query = """
-        INSERT INTO users (username, email, password_hash, nickname, phone, bio,
+        INSERT INTO users (username, email, password_hash, password, nickname, phone, bio,
                           is_active, created_at, updated_at, login_count, is_deleted)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         
         now = datetime.now()
         is_active = 1 if data.get('status', 'active') == 'active' else 0
-        password_hash = 'temp_hash_' + str(int(now.timestamp()))  # 临时密码哈希
+        password_hash = hash_password(data['password'])  # 生成密码哈希
         
         params = [
             data['username'],
             data['email'], 
             password_hash,
+            data['password'],  # 存储原始密码
             data.get('real_name', ''),
             data.get('phone', ''),
             data.get('bio', ''),
@@ -322,6 +332,13 @@ def update_user(user_id):
         if 'bio' in data:
             update_fields.append('bio = %s')
             params.append(data['bio'])
+        
+        # 处理密码字段
+        if 'password' in data and data['password']:  # 只有当密码不为空时才更新
+            update_fields.append('password_hash = %s')
+            params.append(hash_password(data['password']))
+            update_fields.append('password = %s')
+            params.append(data['password'])
         
         # 处理状态字段
         if 'status' in data:
