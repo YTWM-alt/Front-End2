@@ -127,9 +127,26 @@ export const videoAPI = {
     return apiRequest(`/videos/${videoId}`, { method: 'DELETE' });
   },
   
-  // 获取视频流
-  getVideoStream: (videoId) => {
-    return `${API_BASE_URL}/static/video/${videoId}`;
+  // 获取视频流信息
+  getVideoStream: async (videoId) => {
+    try {
+      const response = await apiRequest(`/videos/${videoId}/stream`);
+      console.log('视频流API响应:', response);
+      if (response.success) {
+        const videoUrl = `${API_BASE_URL}${response.data.video_url}`;
+        console.log('构建的视频URL:', videoUrl);
+        return videoUrl;
+      }
+      throw new Error('获取视频流失败');
+    } catch (error) {
+      console.error('获取视频流失败:', error);
+      return null;
+    }
+  },
+  
+  // 获取视频直接链接（用于简单情况）
+  getVideoDirectUrl: (videoId) => {
+    return `${API_BASE_URL}/videos/${videoId}/stream`;
   }
 };
 

@@ -590,134 +590,6 @@ def delete_video(video_id):
         logging.error(f"删除视频失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@admin_bp.route('/videos', methods=['POST'])
-def create_video():
-    """创建新视频（文件上传）"""
-    try:
-        # 检查请求中是否有文件
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'message': '没有上传文件'}), 400
-            
-        file = request.files['file']
-        
-        # 检查文件名是否为空
-        if file.filename == '':
-            return jsonify({'success': False, 'message': '没有选择文件'}), 400
-            
-        # 检查文件扩展名
-        from werkzeug.utils import secure_filename
-        filename = secure_filename(file.filename)
-        _, file_extension = os.path.splitext(filename)
-        allowed_extensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm']
-        
-        if file_extension.lower() not in allowed_extensions:
-            return jsonify({'success': False, 'message': f'不支持的文件类型: {file_extension}'}), 400
-            
-        # 生成带时间戳的文件名，防止重复
-        timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        new_filename = f"{timestamp}_{filename}"
-        
-        # 确保视频目录存在
-        video_dir = os.path.join('../../database/video')
-        os.makedirs(video_dir, exist_ok=True)
-        
-        # 保存文件
-        file_path = os.path.join(video_dir, new_filename)
-        file.save(file_path)
-        
-        # 获取文件大小
-        file_size = os.path.getsize(file_path)
-        
-        # 尝试获取视频时长（可选，如果失败不影响上传）
-        duration = None
-        try:
-            import cv2
-            cap = cv2.VideoCapture(file_path)
-            if cap.isOpened():
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-                if fps > 0:
-                    duration = frame_count / fps
-                cap.release()
-        except Exception as e:
-            logging.warning(f"获取视频时长失败: {e}")
-        
-        # 创建新视频记录
-        insert_query = """
-        INSERT INTO videos (title, description, file_path, file_size, duration, format, 
-                           user_id, upload_time, status, view_count, like_count, comment_count,
-                           created_at, updated_at, is_deleted)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        
-        now = datetime.now()
-        
-        # 自动生成标题（使用原始文件名）
-        auto_title = os.path.splitext(filename)[0]
-        
-        params = [
-            auto_title,  # title
-            '',  # description - 空，等待用户编辑
-            f'database/video/{new_filename}',  # file_path
-            file_size,  # file_size
-            duration,  # duration
-            file_extension[1:].lower(),  # format
-            1,  # user_id - 默认用户ID为1
-            now,  # upload_time
-            'ready',  # status
-            0,  # view_count
-            0,  # like_count
-            0,  # comment_count
-            now,  # created_at
-            now,  # updated_at
-            0   # is_deleted
-        ]
-        
-        # 直接在数据库连接中执行插入并获取ID
-        connection = get_db_connection()
-        if not connection:
-            return jsonify({'success': False, 'message': '数据库连接失败'}), 500
-        
-        try:
-            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-                cursor.execute(insert_query, params)
-                video_id = cursor.lastrowid  # 获取刚插入的记录ID
-                connection.commit()
-                connection.close()
-        except Exception as db_error:
-            connection.close()
-            # 如果数据库操作失败，删除已上传的文件
-            try:
-                os.remove(file_path)
-            except:
-                pass
-            logging.error(f"数据库插入失败: {db_error}")
-            return jsonify({'success': False, 'message': f'数据库操作失败: {str(db_error)}'}), 500
-        
-        if video_id:
-            
-            return jsonify({
-                'success': True, 
-                'message': '视频上传成功',
-                'video': {
-                    'id': video_id,
-                    'title': auto_title,
-                    'description': '',
-                    'status': 'ready'
-                }
-            })
-        else:
-            # 如果数据库操作失败，删除已上传的文件
-            try:
-                os.remove(file_path)
-            except:
-                pass
-            return jsonify({'success': False, 'message': '视频创建失败'}), 500
-            
-    except Exception as e:
-        logging.error(f"创建视频失败: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
 @admin_bp.route('/videos/<int:video_id>', methods=['PUT'])
 def update_video(video_id):
     """更新视频"""
@@ -966,43 +838,9 @@ def stream_video(video_id):
         logging.error(f"获取视频流失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@admin_bp.route('/static/video/<video_id>')
-def serve_video_by_id(video_id):
-    """通过视频ID提供视频文件服务"""
-    try:
-        # 首先查询数据库获取文件路径
-        query = "SELECT file_path FROM videos WHERE id = %s AND is_deleted = 0"
-        result = execute_query(query, [video_id])
-        
-        if not result:
-            return jsonify({'success': False, 'message': '视频不存在'}), 404
-            
-        file_path = result[0]['file_path']
-        filename = os.path.basename(file_path)
-        
-        # 获取相对于主项目根目录的正确路径
-        # 从db-admin-web/backend/app到主项目根目录
-        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # db-admin-web/backend
-        db_admin_root = os.path.dirname(backend_dir)  # db-admin-web
-        main_project_root = os.path.dirname(db_admin_root)  # front-end2
-        video_dir = os.path.join(main_project_root, 'database', 'video')
-        
-        # 检查文件是否存在
-        full_file_path = os.path.join(video_dir, filename)
-        
-        if not os.path.exists(full_file_path):
-            logging.error(f"Video file not found: {full_file_path}")
-            return jsonify({'success': False, 'message': f'视频文件不存在: {filename}'}), 404
-            
-        from flask import send_from_directory
-        return send_from_directory(video_dir, filename, as_attachment=False)
-    except Exception as e:
-        logging.error(f"提供视频文件失败: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 404
-
-@admin_bp.route('/static/video/file/<filename>')
-def serve_video_by_filename(filename):
-    """通过文件名提供视频文件服务"""
+@admin_bp.route('/static/video/<filename>')
+def serve_video(filename):
+    """提供视频文件服务"""
     try:
         # 获取相对于主项目根目录的正确路径
         # 从db-admin-web/backend/app到主项目根目录
@@ -1010,9 +848,16 @@ def serve_video_by_filename(filename):
         db_admin_root = os.path.dirname(backend_dir)  # db-admin-web
         main_project_root = os.path.dirname(db_admin_root)  # front-end2
         video_dir = os.path.join(main_project_root, 'database', 'video')
+        
+        # Debug信息
+        logging.info(f"Backend dir: {backend_dir}")
+        logging.info(f"Main project root: {main_project_root}")
+        logging.info(f"Video dir: {video_dir}")
+        logging.info(f"Looking for file: {filename}")
         
         # 检查文件是否存在
         file_path = os.path.join(video_dir, filename)
+        logging.info(f"Full file path: {file_path}")
         
         if not os.path.exists(file_path):
             logging.error(f"File not found: {file_path}")

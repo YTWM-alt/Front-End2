@@ -20,7 +20,7 @@ const Videos = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState(null);
   const [editFormData, setEditFormData] = useState({});
-  
+
   // 文件上传相关状态
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -210,8 +210,30 @@ const Videos = () => {
   };
 
   // 预览视频
-  const handlePreviewVideo = (video) => {
-    setPreviewVideo(video);
+  const handlePreviewVideo = async (video) => {
+    try {
+      // 先尝试直接构建视频URL，避免复杂的API调用
+      const directVideoUrl = `http://localhost:8081/api/videos/${video.id}/stream`;
+      
+      // 检查视频流API响应
+      const response = await fetch(directVideoUrl);
+      const streamData = await response.json();
+      
+      if (streamData.success) {
+        const videoUrl = `http://localhost:8081${streamData.data.video_url}`;
+        console.log('最终视频URL:', videoUrl);
+        
+        setPreviewVideo({
+          ...video,
+          streamUrl: videoUrl
+        });
+      } else {
+        alert('无法获取视频流，请检查视频文件是否存在');
+      }
+    } catch (error) {
+      console.error('预览视频失败:', error);
+      alert('预览视频失败，请稍后重试');
+    }
   };
 
   // 关闭预览
@@ -374,8 +396,8 @@ const Videos = () => {
         <div className="card-header">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">视频列表</h2>
-              <span className="text-sm text-secondary">共 {total} 个视频</span>
+          <h2 className="text-xl font-semibold">视频列表</h2>
+          <span className="text-sm text-secondary">共 {total} 个视频</span>
             </div>
             <button
               onClick={handleAddVideo}
@@ -593,7 +615,7 @@ const Videos = () => {
           >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <div>
+              <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                     <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                       <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -603,9 +625,9 @@ const Videos = () => {
                     {previewVideo.title}
                   </h3>
                   <p className="text-xs text-gray-500 mt-1">视频预览</p>
-                </div>
-                <button
-                  onClick={closePreview}
+              </div>
+              <button
+                onClick={closePreview}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -628,21 +650,21 @@ const Videos = () => {
                     e.target.style.backgroundColor = 'rgba(254, 242, 242, 0.8)';
                     e.target.style.borderColor = 'rgba(252, 165, 165, 0.9)';
                   }}
-                >
+              >
                   <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
                   关闭
-                </button>
-              </div>
-              
+              </button>
+            </div>
+            
               <div className="mb-4">
-                <div className="video-container">
-                  <video
-                    controls
-                    className="video-player"
-                    src={videoAPI.getVideoStream(previewVideo.id)}
-                    poster="/api/placeholder-video.jpg"
+              <div className="video-container">
+                <video
+                  controls
+                  className="video-player"
+                  src={previewVideo.streamUrl}
+                  poster="http://localhost:8081/api/placeholder-video.jpg"
                     style={{
                       width: '100%',
                       height: 'auto',
@@ -650,29 +672,40 @@ const Videos = () => {
                       borderRadius: '8px',
                       backgroundColor: '#000'
                     }}
-                  >
-                    您的浏览器不支持视频播放。
-                  </video>
-                </div>
+                    onError={(e) => {
+                      console.error('视频加载失败:', e);
+                      console.error('视频源URL:', previewVideo.streamUrl);
+                      console.error('错误详情:', e.target.error);
+                    }}
+                    onLoadStart={() => {
+                      console.log('开始加载视频:', previewVideo.streamUrl);
+                    }}
+                    onCanPlay={() => {
+                      console.log('视频可以播放');
+                    }}
+                >
+                  您的浏览器不支持视频播放。
+                </video>
               </div>
-              
+            </div>
+            
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">📝 描述:</span>
                   <span className="text-gray-900 font-medium">{previewVideo.description || '无描述'}</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">📊 大小:</span>
                   <span className="text-gray-900 font-medium">{formatFileSize(previewVideo.file_size)}</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">⏱️ 时长:</span>
                   <span className="text-gray-900 font-medium">{formatDuration(previewVideo.duration)}</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">🎬 格式:</span>
                   <span className="text-gray-900 font-medium">{previewVideo.format}</span>
-                </div>
+              </div>
                 <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg col-span-2">
                   <span className="text-gray-600">📅 上传:</span>
                   <span className="text-gray-900 font-medium">{formatDate(previewVideo.upload_time)}</span>
