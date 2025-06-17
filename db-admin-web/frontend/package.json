@@ -5,7 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "check-port": "lsof -ti:5173 && echo '❌ 端口5173被占用！请停止现有服务或使用 npm run kill-port' && exit 1 || echo '✅ 端口5173可用'",
+    "kill-port": "lsof -ti:5173 | xargs kill -9 2>/dev/null && echo '✅ 已清理端口5173' || echo '✅ 端口5173未被占用'",
+    "dev": "npm run check-port && vite",
+    "dev-force": "npm run kill-port && vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1"

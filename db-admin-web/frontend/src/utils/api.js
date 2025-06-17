@@ -103,15 +103,30 @@ export const videoAPI = {
   },
   
   // 创建视频（文件上传）
-  createVideo: (file) => {
+  createVideo: async (file) => {
     const formData = new FormData();
     formData.append('file', file);
     
-    return apiRequest('/videos', {
-      method: 'POST',
-      headers: {}, // 让浏览器自动设置Content-Type为multipart/form-data
-      body: formData
-    });
+    const url = `${API_BASE_URL}/videos`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData
+        // 不设置Content-Type，让浏览器自动设置multipart/form-data
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || '上传失败');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('视频上传错误:', error);
+      throw error;
+    }
   },
   
   // 更新视频信息

@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true, // 强制使用指定端口，如果被占用则报错退出
     host: true,
     proxy: {
       '/api': {

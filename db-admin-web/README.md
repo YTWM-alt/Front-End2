@@ -56,7 +56,7 @@ cd db-admin-web
 
 启动后访问：
 - 🎨 **前端界面**: http://localhost:5173
-- 🔧 **后端API**: http://localhost:8080
+- 🔧 **后端API**: http://localhost:8081
 - 📊 **管理入口**: http://localhost:5173/dashboard
 
 ### 手动启动
@@ -74,7 +74,7 @@ source venv/bin/activate  # Linux/Mac
 # 安装依赖
 pip install -r requirements.txt
 
-# 启动后端服务 (端口: 8080)
+# 启动后端服务 (端口: 8081)
 python run.py
 ```
 
@@ -255,7 +255,7 @@ DELETE /api/feedbacks/{id}     # 删除反馈
 
 ## 🚨 注意事项
 
-1. **端口冲突**: 确保8080和5173端口未被占用
+1. **端口冲突**: 确保8081和5173端口未被占用
 2. **数据库权限**: MySQL用户需要足够的操作权限
 3. **跨域设置**: 后端已配置CORS，生产环境需调整
 4. **数据安全**: 使用软删除，避免误删重要数据

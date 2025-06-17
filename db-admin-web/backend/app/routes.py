@@ -4,6 +4,9 @@ import logging
 import json
 from datetime import datetime
 import os
+import uuid
+import subprocess
+from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -43,6 +46,37 @@ def execute_query(query, params=None, fetch=True):
     except Exception as e:
         logging.error(f"查询执行失败: {e}")
         connection.close()
+        return None
+
+def get_video_duration(file_path):
+    """使用ffmpeg获取视频时长"""
+    try:
+        # 使用ffprobe获取视频信息
+        cmd = [
+            'ffprobe', 
+            '-v', 'quiet', 
+            '-print_format', 'json', 
+            '-show_format', 
+            file_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            import json
+            info = json.loads(result.stdout)
+            duration = float(info['format']['duration'])
+            logging.info(f"获取视频时长成功: {duration}秒")
+            return duration
+        else:
+            logging.error(f"ffprobe执行失败: {result.stderr}")
+            return None
+            
+    except subprocess.TimeoutExpired:
+        logging.error("获取视频时长超时")
+        return None
+    except Exception as e:
+        logging.error(f"获取视频时长失败: {e}")
         return None
 
 @admin_bp.route('/dashboard/stats', methods=['GET'])
@@ -633,6 +667,117 @@ def update_video(video_id):
         logging.error(f"更新视频失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@admin_bp.route('/videos', methods=['POST'])
+def create_video():
+    """上传新视频"""
+    try:
+        # 检查是否有文件在请求中
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '没有文件被上传'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': '没有选择文件'}), 400
+        
+        # 检查文件类型
+        allowed_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm'}
+        filename = secure_filename(file.filename)
+        file_ext = os.path.splitext(filename)[1].lower()
+        
+        if file_ext not in allowed_extensions:
+            return jsonify({'success': False, 'message': '不支持的文件格式'}), 400
+        
+        # 生成唯一文件名
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        
+        # 确保上传目录存在
+        upload_dir = os.path.join(current_app.root_path, '..', 'static', 'videos')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 保存文件
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+        
+        # 获取文件信息
+        file_size = os.path.getsize(file_path)
+        
+        # 获取视频时长
+        duration = get_video_duration(file_path)
+        logging.info(f"视频文件 {unique_filename} 时长: {duration}秒")
+        
+        # 生成默认标题（基于原文件名）
+        original_name = os.path.splitext(filename)[0]
+        title = original_name or f"视频_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # 根据时长获取是否成功确定状态
+        video_status = 'ready' if duration is not None else 'processing'
+        
+        # 插入数据库记录
+        insert_query = """
+        INSERT INTO videos (title, description, file_path, file_size, format, duration,
+                           status, user_id, upload_time, created_at, updated_at, is_deleted,
+                           view_count, like_count, comment_count)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        now = datetime.now()
+        relative_path = f"static/videos/{unique_filename}"
+        
+        params = [
+            title,
+            f"上传的视频文件: {filename}",  # 默认描述
+            relative_path,
+            file_size,
+            file_ext[1:],  # 去掉点号
+            duration,  # 视频时长
+            video_status,  # 根据时长获取结果设置状态
+            1,  # 默认用户ID，实际使用时应该从登录用户获取
+            now,
+            now,
+            now,
+            0,  # is_deleted = 0 (未删除)
+            0,  # view_count = 0
+            0,  # like_count = 0
+            0   # comment_count = 0
+        ]
+        
+        connection = get_db_connection()
+        if not connection:
+            # 如果数据库连接失败，删除已上传的文件
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return jsonify({'success': False, 'message': '数据库连接失败'}), 500
+        
+        try:
+            with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+                cursor.execute(insert_query, params)
+                video_id = cursor.lastrowid
+                connection.commit()
+                
+                # 获取刚创建的视频信息
+                select_query = "SELECT id, title, description, status FROM videos WHERE id = %s"
+                cursor.execute(select_query, [video_id])
+                video_info = cursor.fetchone()
+                
+                return jsonify({
+                    'success': True, 
+                    'message': '视频上传成功',
+                    'video': video_info
+                })
+                
+        except Exception as e:
+            logging.error(f"数据库插入失败: {e}")
+            # 如果数据库操作失败，删除已上传的文件
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            return jsonify({'success': False, 'message': f'数据库操作失败: {str(e)}'}), 500
+        finally:
+            connection.close()
+            
+    except Exception as e:
+        logging.error(f"视频上传失败: {e}")
+        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
+
 @admin_bp.route('/feedbacks', methods=['GET'])
 def get_feedbacks():
     """获取反馈列表"""
@@ -812,59 +957,123 @@ def update_feedback(feedback_id):
         logging.error(f"更新反馈失败: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@admin_bp.route('/videos/<int:video_id>/stream', methods=['GET'])
-def stream_video(video_id):
-    """获取视频流地址"""
-    try:
-        query = "SELECT file_path FROM videos WHERE id = %s AND is_deleted = 0"
-        result = execute_query(query, [video_id])
-        
-        if result and len(result) > 0:
-            file_path = result[0]['file_path']
-            # 构建视频文件的实际路径
-            video_file_path = os.path.join('../../database/video', os.path.basename(file_path))
-            
-            return jsonify({
-                'success': True,
-                'data': {
-                    'video_url': f'/api/static/video/{os.path.basename(file_path)}',
-                    'file_path': file_path
-                }
-            })
-        else:
-            return jsonify({'success': False, 'message': '视频不存在'}), 404
-            
-    except Exception as e:
-        logging.error(f"获取视频流失败: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
-
 @admin_bp.route('/static/video/<filename>')
 def serve_video(filename):
-    """提供视频文件服务"""
+    """提供视频文件服务 - 支持HTTP Range请求进行流式播放"""
     try:
-        # 获取相对于主项目根目录的正确路径
-        # 从db-admin-web/backend/app到主项目根目录
-        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # db-admin-web/backend
-        db_admin_root = os.path.dirname(backend_dir)  # db-admin-web
-        main_project_root = os.path.dirname(db_admin_root)  # front-end2
-        video_dir = os.path.join(main_project_root, 'database', 'video')
+        # 使用本地的视频存储目录
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        video_dir = os.path.join(backend_dir, 'static', 'videos')
         
-        # Debug信息
-        logging.info(f"Backend dir: {backend_dir}")
-        logging.info(f"Main project root: {main_project_root}")
-        logging.info(f"Video dir: {video_dir}")
-        logging.info(f"Looking for file: {filename}")
-        
-        # 检查文件是否存在
         file_path = os.path.join(video_dir, filename)
-        logging.info(f"Full file path: {file_path}")
         
         if not os.path.exists(file_path):
             logging.error(f"File not found: {file_path}")
             return jsonify({'success': False, 'message': f'视频文件不存在: {file_path}'}), 404
             
+        file_size = os.path.getsize(file_path)
+        
+        # 检查是否是Range请求 - 支持视频流式播放
+        range_header = request.headers.get('Range')
+        
+        if range_header:
+            # 解析Range头：bytes=start-end
+            import re
+            range_match = re.search(r'bytes=(\d+)-(\d*)', range_header)
+            if range_match:
+                start = int(range_match.group(1))
+                end = int(range_match.group(2)) if range_match.group(2) else file_size - 1
+                
+                # 确保范围有效
+                start = max(0, start)
+                end = min(file_size - 1, end)
+                content_length = end - start + 1
+                
+                # 读取指定范围的数据
+                with open(file_path, 'rb') as f:
+                    f.seek(start)
+                    data = f.read(content_length)
+                
+                from flask import Response
+                
+                # 返回部分内容响应
+                response = Response(
+                    data,
+                    206,  # Partial Content
+                    headers={
+                        'Content-Range': f'bytes {start}-{end}/{file_size}',
+                        'Accept-Ranges': 'bytes',
+                        'Content-Length': str(content_length),
+                        'Content-Type': 'video/mp4',
+                        'Cache-Control': 'public, max-age=3600',  # 缓存1小时
+                        'ETag': f'"{filename}-{file_size}"',
+                        'Last-Modified': datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%a, %d %b %Y %H:%M:%S GMT')
+                    }
+                )
+                return response
+        
+        # 如果不是Range请求，返回完整文件
         from flask import send_from_directory
-        return send_from_directory(video_dir, filename, as_attachment=False)
+        
+        # 添加缓存头
+        response = send_from_directory(video_dir, filename, as_attachment=False)
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+        response.headers['Accept-Ranges'] = 'bytes'
+        response.headers['ETag'] = f'"{filename}-{file_size}"'
+        response.headers['Last-Modified'] = datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%a, %d %b %Y %H:%M:%S GMT')
+        
+        return response
+        
     except Exception as e:
         logging.error(f"提供视频文件失败: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 404 
+        return jsonify({'success': False, 'message': str(e)}), 404
+
+@admin_bp.route('/videos/<int:video_id>/stream', methods=['GET'])
+def stream_video(video_id):
+    """获取视频流地址 - 优化版本支持流式播放"""
+    try:
+        query = """
+        SELECT file_path, file_size, duration, format, title 
+        FROM videos 
+        WHERE id = %s AND is_deleted = 0 AND status = 'ready'
+        """
+        result = execute_query(query, [video_id])
+        
+        if result and len(result) > 0:
+            video_info = result[0]
+            file_path = video_info['file_path']
+            filename = os.path.basename(file_path)
+            
+            # 检查文件是否实际存在
+            backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            video_dir = os.path.join(backend_dir, 'static', 'videos')
+            full_file_path = os.path.join(video_dir, filename)
+            
+            if not os.path.exists(full_file_path):
+                return jsonify({
+                    'success': False, 
+                    'message': '视频文件不存在，可能已被移动或删除'
+                }), 404
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'video_url': f'/api/static/video/{filename}',
+                    'file_path': file_path,
+                    'file_size': video_info.get('file_size', 0),
+                    'duration': video_info.get('duration', 0),
+                    'format': video_info.get('format', 'mp4'),
+                    'title': video_info.get('title', '未知视频'),
+                    'supports_range': True,  # 标识支持Range请求
+                    'cache_hint': 'aggressive'  # 建议激进缓存策略
+                }
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': '视频不存在或未就绪'
+            }), 404
+            
+    except Exception as e:
+        logging.error(f"获取视频流失败: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500 
