@@ -46,32 +46,29 @@ echo "✅ 前端依赖安装完成"
 echo "================================================"
 echo "🔒 严格端口检查..."
 
-# 检查和清理5173端口
+# 检查5173端口
 echo "🔍 检查前端端口5173..."
 if lsof -i:5173 >/dev/null 2>&1; then
-    echo "⚠️  端口5173被占用，正在清理..."
-    lsof -ti:5173 | xargs kill -9 2>/dev/null
-    sleep 2
-    if lsof -i:5173 >/dev/null 2>&1; then
-        echo "❌ 无法清理端口5173，请手动处理"
-        exit 1
-    fi
-    echo "✅ 端口5173已清理"
+    echo "❌ 端口5173被占用！"
+    echo "占用进程信息："
+    lsof -i:5173
+    echo ""
+    echo "请先停止占用端口的服务，然后重新启动"
+    echo "或者使用: npm run kill-port 手动清理端口"
+    exit 1
 else
     echo "✅ 端口5173可用"
 fi
 
-# 检查和清理8081端口  
+# 检查8081端口  
 echo "🔍 检查后端端口8081..."
 if lsof -i:8081 >/dev/null 2>&1; then
-    echo "⚠️  端口8081被占用，正在清理..."
-    lsof -ti:8081 | xargs kill -9 2>/dev/null
-    sleep 2
-    if lsof -i:8081 >/dev/null 2>&1; then
-        echo "❌ 无法清理端口8081，请手动处理"
-        exit 1
-    fi
-    echo "✅ 端口8081已清理"
+    echo "❌ 端口8081被占用！"
+    echo "占用进程信息："
+    lsof -i:8081
+    echo ""
+    echo "请先停止占用端口的服务，然后重新启动"
+    exit 1
 else
     echo "✅ 端口8081可用"
 fi
@@ -82,6 +79,7 @@ echo "📍 后端API: http://localhost:8081 (严格模式)"
 echo "🎨 前端界面: http://localhost:5173 (严格模式)"
 echo "📊 管理入口: http://localhost:5173/dashboard"
 echo "🚫 备用端口: 已禁用"
+echo "🚫 自动清理: 已禁用"
 echo "================================================"
 
 # 启动后端服务（后台运行）

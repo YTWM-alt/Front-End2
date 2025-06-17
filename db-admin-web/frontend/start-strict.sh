@@ -16,19 +16,9 @@ if lsof -i:5173 >/dev/null 2>&1; then
     echo "占用进程信息："
     lsof -i:5173
     echo ""
-    echo -e "${YELLOW}🛠️  正在强制清理端口5173...${NC}"
-    
-    # 强制杀死占用5173端口的进程
-    lsof -ti:5173 | xargs kill -9 2>/dev/null
-    sleep 2
-    
-    # 再次检查
-    if lsof -i:5173 >/dev/null 2>&1; then
-        echo -e "${RED}❌ 无法清理端口5173，请手动处理${NC}"
-        exit 1
-    else
-        echo -e "${GREEN}✅ 端口5173已清理完成${NC}"
-    fi
+    echo -e "${RED}请先停止占用端口的服务，然后重新启动${NC}"
+    echo -e "${YELLOW}手动清理命令: npm run kill-port${NC}"
+    exit 1
 else
     echo -e "${GREEN}✅ 端口5173可用${NC}"
 fi
@@ -37,6 +27,7 @@ echo ""
 echo -e "${GREEN}🚀 启动前端服务 (严格端口模式)${NC}"
 echo "- 固定端口: 5173"
 echo "- 备用端口: 已禁用"
+echo "- 自动清理: 已禁用"
 echo "- 冲突处理: 报错退出"
 echo "================================================"
 
