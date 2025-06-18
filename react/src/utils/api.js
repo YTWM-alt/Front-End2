@@ -9,6 +9,8 @@ const API_BASE_URL = 'http://localhost:3003/api';
  */
 const fetchAPI = async (url, options = {}) => {
   try {
+    console.log('🔗 [DEBUG] fetchAPI 开始:', `${API_BASE_URL}${url}`);
+    
     // 获取认证token
     const token = localStorage.getItem('token');
     const headers = {
@@ -21,12 +23,27 @@ const fetchAPI = async (url, options = {}) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    console.log('🔗 [DEBUG] 请求头:', headers);
+    
+    // 创建一个带超时的fetch请求
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ [DEBUG] 请求超时，取消请求');
+      controller.abort();
+    }, 10000); // 10秒超时
+    
     const response = await fetch(`${API_BASE_URL}${url}`, {
       headers,
+      signal: controller.signal,
       ...options,
     });
+    
+    clearTimeout(timeoutId);
+    console.log('🔗 [DEBUG] 收到响应, 状态:', response.status);
+    console.log('🔗 [DEBUG] 响应头:', Object.fromEntries(response.headers.entries()));
 
     const data = await response.json();
+    console.log('🔗 [DEBUG] 解析的JSON数据:', data);
     
     if (!response.ok) {
       throw new Error(data.message || data.error || `HTTP错误: ${response.status}`);
@@ -34,7 +51,9 @@ const fetchAPI = async (url, options = {}) => {
 
     return data;
   } catch (error) {
-    console.error('API请求失败:', error);
+    console.error('❌ [DEBUG] API请求失败:', error);
+    console.error('❌ [DEBUG] 错误类型:', error.constructor.name);
+    console.error('❌ [DEBUG] 错误消息:', error.message);
     throw error;
   }
 };
@@ -323,9 +342,15 @@ export const saveToRequestion = async (content) => {
  */
 export const getVideos = async () => {
   try {
+    console.log('🚀 [DEBUG] 开始调用后端API: /videos/');
+    console.log('🚀 [DEBUG] API_BASE_URL:', API_BASE_URL);
+    
     const result = await fetchAPI('/videos/');
     
-    console.log('📊 获取视频列表响应:', result);
+    console.log('📊 [DEBUG] 获取视频列表原始响应:', result);
+    console.log('📊 [DEBUG] 响应类型:', typeof result);
+    console.log('📊 [DEBUG] 是否有videos字段:', !!result.videos);
+    console.log('📊 [DEBUG] videos是数组吗:', Array.isArray(result.videos));
     
     if (result.success && result.videos) {
       // 处理视频数据
@@ -334,7 +359,7 @@ export const getVideos = async () => {
         filename: video.filename || (video.file_path ? video.file_path.split('/').pop() : '未知'),
         title: video.title || '未命名视频',
         size: video.file_size,
-        sizeFormatted: video.file_size_mb ? `${video.file_size_mb} MB` : '未知',
+        sizeFormatted: video.size_formatted || '未知',
         duration: video.duration || 0,
         durationFormatted: video.duration_formatted || '0:00',
         createdTime: video.upload_time ? new Date(video.upload_time) : new Date(),
@@ -345,6 +370,9 @@ export const getVideos = async () => {
         sizeCategory: getSizeCategory(video.file_size),
         durationCategory: getDurationCategory(video.duration || 0)
       }));
+      
+      console.log('🎥 [DEBUG] 处理后的视频数量:', processedVideos.length);
+      console.log('🎥 [DEBUG] 第一个视频示例:', processedVideos[0]);
       
       return {
         success: true,
@@ -371,19 +399,19 @@ export const getVideos = async () => {
 function getSizeCategory(fileSize) {
   const sizeMB = fileSize / (1024 * 1024);
   
-  if (sizeMB < 50) return 'small';
-  if (sizeMB < 200) return 'medium';
-  if (sizeMB < 500) return 'large';
-  return 'extra-large';
+  if (sizeMB < 10) return 'small';
+  if (sizeMB < 50) return 'medium';
+  if (sizeMB < 200) return 'large';
+  return 'xlarge';
 }
 
 /**
  * 根据时长获取分类
  */
 function getDurationCategory(duration) {
-  if (duration < 300) return 'short'; // 5分钟以内
-  if (duration < 1800) return 'medium'; // 5-30分钟
-  if (duration < 3600) return 'long'; // 30-60分钟
-  return 'extra-long'; // 60分钟以上
+  if (duration < 60) return 'short'; // 1分钟以内
+  if (duration < 300) return 'medium'; // 1-5分钟
+  if (duration < 900) return 'long'; // 5-15分钟
+  return 'xlong'; // 15分钟以上
 }
  

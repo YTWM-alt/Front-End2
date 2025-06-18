@@ -51,13 +51,22 @@ const MyVideos = ({ authHook, onNavigate, onLoginClick, onLogout, showNotificati
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      console.log('🔍 开始获取视频列表...');
+      console.log('🔍 [MyVideos] 开始获取视频列表...');
       
       const result = await getVideos();
-      console.log('✅ 获取视频列表结果:', result);
+      console.log('✅ [MyVideos] 获取视频列表结果:', result);
+      console.log('✅ [MyVideos] result.success:', result.success);
+      console.log('✅ [MyVideos] result.videos 是数组:', Array.isArray(result.videos));
+      console.log('✅ [MyVideos] result.videos 长度:', result.videos ? result.videos.length : 'undefined');
 
       if (result.success && Array.isArray(result.videos)) {
-        const processedVideos = result.videos;
+        // 为每个视频添加分类信息（这些字段在api.js中已经处理过）
+        const processedVideos = result.videos.map(video => ({
+          ...video,
+          // 确保分类字段存在
+          sizeCategory: video.sizeCategory || getSizeCategory(video.size || 0),
+          durationCategory: video.durationCategory || getDurationCategory(video.duration || 0)
+        }));
         console.log('🎥 处理后的视频列表:', processedVideos);
         setVideos(processedVideos);
         setFilteredVideos(processedVideos);
