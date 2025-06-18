@@ -244,7 +244,7 @@ def create_admin_user(connection, admin_username, admin_password):
 def main():
     """主函数"""
     print("="*50)
-    print("未决定AI平台 - MySQL数据库初始化工具")
+    print("智映教匠AI平台 - MySQL数据库初始化工具")
     print("="*50)
     print("\n该工具将帮助您创建MySQL数据库和所需表\n")
     

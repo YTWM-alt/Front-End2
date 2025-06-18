@@ -10,7 +10,7 @@ set "YELLOW=[93m"
 set "NC=[0m"
 
 :: 打印带颜色的消息
-call :print_message "开始启动未决定AI平台后端服务..."
+call :print_message "开始启动智映教匠AI平台后端服务..."
 
 :: 检查Python是否安装
 python --version > nul 2>&1
@@ -104,7 +104,7 @@ exit /b 0
 
 :: 函数定义
 :print_message
-echo %BLUE%[未决定AI平台]%NC% %~1
+echo %BLUE%[智映教匠AI平台]%NC% %~1
 exit /b 0
 
 :print_success

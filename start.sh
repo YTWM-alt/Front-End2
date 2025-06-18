@@ -20,7 +20,7 @@ print_warning() {
 }
 
 print_info() {
-    echo -e "[未决定AI平台] $1"
+    echo -e "[智映教匠AI平台] $1"
 }
 
 # 检查Python3
@@ -121,7 +121,7 @@ start_service() {
 
 # 主函数
 main() {
-    print_info "开始启动未决定AI平台后端服务..."
+    print_info "开始启动智映教匠AI平台后端服务..."
     
     # 检查Python
     check_python
@@ -143,7 +143,7 @@ main() {
 }
 
 # 捕获Ctrl+C
-trap 'echo -e "\n${YELLOW}[未决定AI平台] 服务已停止${NC}"; exit 0' INT
+trap 'echo -e "\n${YELLOW}[智映教匠AI平台] 服务已停止${NC}"; exit 0' INT
 
 # 运行主函数
 main 

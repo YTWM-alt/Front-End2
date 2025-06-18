@@ -125,7 +125,7 @@ const FilterBar = ({ onFilterChange }) => {
   return (
     <div className="filter-bar">
       <div className="filter-section">
-        <span className="filter-label">年级筛选：</span>
+        <span className="filter-label">筛选：</span>
         
         <div className="filter-options">
           {gradeOptions.map((grade) => (

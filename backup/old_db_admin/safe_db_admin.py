@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-未决定AI平台 - 安全数据库管理工具启动脚本
+智映教匠AI平台 - 安全数据库管理工具启动脚本
 不加载视频处理相关库，避免内存问题
 """
 
@@ -91,7 +91,7 @@ def create_app():
 
 if __name__ == '__main__':
     print("="*60)
-    print("未决定AI平台 - 安全数据库管理工具")
+    print("智映教匠AI平台 - 安全数据库管理工具")
     print("="*60)
     print("服务正在启动，请访问 http://localhost:3003/")
     print("按 Ctrl+C 停止服务")

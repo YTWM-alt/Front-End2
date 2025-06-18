@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 
 # 打印带颜色的消息
 print_message() {
-    echo -e "${GREEN}[未决定AI平台]${NC} $1"
+    echo -e "${GREEN}[智映教匠AI平台]${NC} $1"
 }
 
 print_success() {
@@ -64,7 +64,7 @@ start_frontend() {
     print_message "前端服务将在 http://localhost:3000 启动"
     echo ""
     echo "    ╔═══════════════════════════════════════╗"
-    echo "    ║        未决定AI平台前端服务          ║"
+    echo "    ║        智映教匠AI平台前端服务          ║"
     echo "    ╚═══════════════════════════════════════╝"
     echo ""
     echo "🚀 服务正在启动..."
@@ -78,7 +78,7 @@ start_frontend() {
 
 # 主函数
 main() {
-    print_message "开始启动未决定AI平台前端服务..."
+    print_message "开始启动智映教匠AI平台前端服务..."
     
     # 检查环境
     check_node

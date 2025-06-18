@@ -114,7 +114,7 @@ def create_env_file(db_name, db_user, db_password):
 
 def main():
     """主函数"""
-    print_info("欢迎使用未决定AI平台数据库初始化工具")
+    print_info("欢迎使用智映教匠AI平台数据库初始化工具")
     print_info("该工具将创建MySQL数据库和用户，并生成.env配置文件")
     print_info("请确保您的MySQL服务已启动并且具有root权限")
     

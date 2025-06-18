@@ -704,15 +704,20 @@ def create_video():
         if file_ext not in allowed_extensions:
             return jsonify({'success': False, 'message': '不支持的文件格式'}), 400
         
-        # 生成唯一文件名
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        # 保持原始文件名，不生成UUID
+        safe_filename = secure_filename(file.filename)
         
         # 确保上传目录存在
         upload_dir = os.path.join(current_app.root_path, '..', 'static', 'videos')
         os.makedirs(upload_dir, exist_ok=True)
         
         # 保存文件
-        file_path = os.path.join(upload_dir, unique_filename)
+        file_path = os.path.join(upload_dir, safe_filename)
+        
+        # 如果文件已存在，返回错误
+        if os.path.exists(file_path):
+            return jsonify({'success': False, 'message': f'文件 {safe_filename} 已存在'}), 409
+            
         file.save(file_path)
         
         # 获取文件信息
@@ -720,9 +725,9 @@ def create_video():
         
         # 获取视频时长
         duration = get_video_duration(file_path)
-        logging.info(f"视频文件 {unique_filename} 时长: {duration}秒")
+        logging.info(f"视频文件 {safe_filename} 时长: {duration}秒")
         
-        # 生成默认标题（基于原文件名）
+        # 使用原始文件名（不含扩展名）作为标题
         original_name = os.path.splitext(filename)[0]
         title = original_name or f"视频_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
@@ -738,7 +743,7 @@ def create_video():
         """
         
         now = datetime.now()
-        relative_path = f"static/videos/{unique_filename}"
+        relative_path = f"static/videos/{safe_filename}"
         
         params = [
             title,

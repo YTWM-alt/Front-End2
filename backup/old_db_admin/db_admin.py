@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-数据库管理模块 - 为未决定AI平台提供MySQL数据库连接和操作功能
+数据库管理模块 - 为智映教匠AI平台提供MySQL数据库连接和操作功能
 """
 
 import os

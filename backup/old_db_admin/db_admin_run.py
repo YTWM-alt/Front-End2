@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-未决定AI平台 - 数据库管理工具启动脚本
+智映教匠AI平台 - 数据库管理工具启动脚本
 """
 
 import os
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         port = 3003  # 固定使用3003端口
         
         print("="*60)
-        print("未决定AI平台 - 数据库管理工具")
+        print("智映教匠AI平台 - 数据库管理工具")
         print("="*60)
         print(f"服务正在启动，请访问 http://localhost:{port}/")
         print("按 Ctrl+C 停止服务")

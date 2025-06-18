@@ -30,7 +30,7 @@ const createFileContent = (question) => {
 提问内容: ${question}
 
 ---
-此文件由未决定AI平台自动生成
+此文件由智映教匠AI平台自动生成
 文件保存时间: ${now.toISOString()}
 `;
 };
