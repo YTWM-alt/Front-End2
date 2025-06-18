@@ -30,7 +30,7 @@ const fetchAPI = async (url, options = {}) => {
     const timeoutId = setTimeout(() => {
       console.log('⏰ [DEBUG] 请求超时，取消请求');
       controller.abort();
-    }, 10000); // 10秒超时
+    }, 300000); // 5分钟超时（300秒），用于更好地监听AI视频生成
     
     const response = await fetch(`${API_BASE_URL}${url}`, {
       headers,

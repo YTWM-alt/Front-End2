@@ -175,7 +175,7 @@ class ApiService {
   async processAIVideo() {
     return await this.request(API_ENDPOINTS.PROCESS_AI_VIDEO, {
       method: 'POST',
-      timeout: 120000 // 2分钟超时
+      timeout: 300000 // 5分钟超时（300秒），用于更好地监听AI视频生成
     });
   }
 
