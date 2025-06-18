@@ -196,7 +196,7 @@ def delete_video(filename):
 
 @bp.route('/process-ai-video', methods=['POST'])
 def process_ai_video():
-    """处理AI产品视频 - 使用数据库"""
+    """处理AI产品视频 - 使用数据库（防止重复处理）"""
     try:
         ai_product_dir = current_app.config['AI_PRODUCT_DIR']
         logger.info(f"开始处理AI产品目录: {ai_product_dir}")
@@ -216,6 +216,15 @@ def process_ai_video():
             video_files.extend(ai_product_dir.glob(f'*.{clean_ext}'))
         
         logger.info(f"找到 {len(video_files)} 个视频文件")
+        
+        # 如果没有视频文件，直接返回成功但无内容
+        if not video_files:
+            logger.info("AI_product目录中没有视频文件，无需处理")
+            return jsonify({
+                'success': True,
+                'message': '没有找到需要处理的视频文件',
+                'processed_count': 0
+            })
         
         processed_count = 0
         latest_video = None  # 用于记录最新处理的视频
@@ -270,11 +279,12 @@ def process_ai_video():
                     logger.error("未找到用户，无法处理AI视频")
                     continue
                 
-                # 移动视频文件到video目录
+                # 移动视频文件到video目录（确保移动后AI_product中的文件被删除）
                 try:
                     import shutil
                     shutil.move(str(video_file), str(video_dir_path))
                     logger.info(f"已移动视频文件到video目录: {video_dir_path}")
+                    logger.info(f"AI_product中的源文件已自动删除: {video_file}")
                 except Exception as e:
                     logger.error(f"移动视频文件失败: {str(e)}")
                     continue
@@ -305,23 +315,40 @@ def process_ai_video():
         
         logger.info(f"处理完成，共处理 {processed_count} 个视频文件")
         
+        # 清理AI_product目录中剩余的临时文件（如果有的话）
+        try:
+            remaining_files = list(ai_product_dir.glob('*'))
+            if remaining_files:
+                logger.info(f"清理AI_product目录中的剩余文件: {len(remaining_files)}个")
+                for temp_file in remaining_files:
+                    if temp_file.is_file():
+                        try:
+                            temp_file.unlink()
+                            logger.info(f"已清理临时文件: {temp_file}")
+                        except Exception as e:
+                            logger.warning(f"清理临时文件失败: {temp_file}, 错误: {e}")
+        except Exception as e:
+            logger.warning(f"清理AI_product目录时出错: {e}")
+        
         # 构建响应数据
         response_data = {
             'success': True,
-            'message': f'成功处理 {processed_count} 个AI视频文件',
+            'message': f'成功处理 {processed_count} 个AI视频文件，AI_product目录已清理',
             'processed_count': processed_count
         }
         
-        # 如果有最新处理的视频，添加其信息
+        # 如果有最新处理的视频，添加其信息（确保返回正确的video路径）
         if latest_video:
             video_filename = Path(latest_video.file_path).name
             response_data.update({
-                'videoUrl': f'/videos/{video_filename}',
+                'videoUrl': f'/videos/{video_filename}',  # 播放video文件夹中的视频
                 'originalFileName': video_filename,
                 'newFileName': video_filename,
-                'timestamp': latest_video.created_at.isoformat() if latest_video.created_at else None
+                'videoFileName': video_filename,  # 新增：保存视频文件名供前端使用
+                'timestamp': latest_video.created_at.isoformat() if latest_video.created_at else None,
+                'isFromAIProduct': True  # 标识这是从AI_product处理的视频
             })
-            logger.info(f"返回最新视频信息: {response_data}")
+            logger.info(f"返回最新视频信息（已移动到video目录）: {response_data}")
         
         return jsonify(response_data)
         

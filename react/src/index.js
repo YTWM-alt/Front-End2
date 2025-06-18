@@ -7,8 +7,7 @@ import App from './App';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 // 渲染App组件到根元素
+// 注意：暂时移除StrictMode以避免开发环境下的重复执行
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 ); 

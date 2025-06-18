@@ -6,6 +6,13 @@ import { useChat } from '../../hooks/useChat';
 import { SAMPLE_VIDEO } from '../../utils/constants';
 import { processAIVideo } from '../../utils/api';
 
+// 全局处理状态，防止重复执行
+let globalProcessingState = {
+  isProcessing: false,
+  hasProcessed: false,
+  lastProcessTime: 0
+};
+
 /**
  * 学习容器组件
  * 整合视频播放和AI聊天功能
@@ -14,15 +21,22 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [videoData, setVideoData] = useState(SAMPLE_VIDEO);
   const [isProcessingVideo, setIsProcessingVideo] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false); // 防止重复处理
   
   // 使用聊天Hook
   const chatHook = useChat();
 
-  // 组件挂载后显示动画和处理AI视频
+  // 组件挂载后显示动画和处理AI视频（只触发一次）
   useEffect(() => {
+    console.log('📦 LearningContainer 组件挂载, hasProcessed:', hasProcessed);
     setTimeout(() => setIsVisible(true), 50);
-    handleProcessAIVideo();
-  }, []);
+    if (!hasProcessed) {
+      console.log('🚀 首次挂载，开始处理AI视频');
+      handleProcessAIVideo();
+    } else {
+      console.log('🚫 已处理过，跳过AI视频处理');
+    }
+  }, []); // 移除hasProcessed依赖，避免循环触发
 
   // 根据搜索词更新视频标题
   useEffect(() => {
@@ -36,30 +50,40 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
   }, [searchTerm]);
 
   /**
-   * 处理AI生成的视频
+   * 处理AI生成的视频（只允许执行一次）
    */
   const handleProcessAIVideo = async () => {
+    if (hasProcessed || isProcessingVideo) {
+      console.log('🚫 AI视频处理已执行过或正在处理中，跳过重复调用');
+      return;
+    }
+
     setIsProcessingVideo(true);
+    setHasProcessed(true); // 标记为已处理，防止重复触发
     
     try {
       const result = await processAIVideo();
       
       if (result.success) {
-        // 构建完整的视频URL
+        // 构建完整的视频URL（现在视频已移动到video文件夹）
         const fullVideoUrl = `http://localhost:3003${result.videoUrl}`;
+        const videoFileName = result.videoFileName || result.newFileName || 'ai_video';
         
         // 更新视频数据
         setVideoData(prev => ({
           ...prev,
           source: fullVideoUrl,
+          fileName: videoFileName, // 保存视频文件名
           title: searchTerm ? `${searchTerm} - AI生成视频` : 'AI生成视频',
           description: searchTerm 
             ? `关于"${searchTerm}"的AI生成视频内容。该视频基于您的搜索关键词自动生成，为您提供个性化的学习体验。`
             : 'AI为您生成的个性化学习视频。',
-          thumbnail: "https://cdn.pixabay.com/photo/2017/01/25/17/35/background-2008590_1280.jpg"
+          thumbnail: "https://cdn.pixabay.com/photo/2017/01/25/17/35/background-2008590_1280.jpg",
+          isFromAIProduct: result.isFromAIProduct || false // 标识来源
         }));
         
-        console.log('✅ AI视频处理成功:', result);
+        console.log('✅ AI视频处理成功（已从AI_product移动到video）:', result);
+        console.log('🎬 视频文件名:', videoFileName);
       } else {
         console.log('ℹ️ 没有找到AI视频文件，使用默认视频');
       }
@@ -93,10 +117,10 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
         <div className="video-controls">
           <button 
             className="control-btn" 
-            title="重新生成"
+            title="关闭"
             onClick={handleClose}
             style={{
-              background: 'var(--primary)',
+              background: '#6b7a8e',
               color: 'white',
               border: 'none',
               padding: '8px 15px',
@@ -106,13 +130,13 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 8px rgba(74, 111, 227, 0.3)',
+              boxShadow: '0 2px 8px rgba(107, 122, 142, 0.3)',
               width: 'auto',
               height: 'auto'
             }}
           >
-            <i className="fas fa-sync-alt"></i>
-            重新生成
+            <i className="fas fa-times"></i>
+            关闭
           </button>
         </div>
       </div>
