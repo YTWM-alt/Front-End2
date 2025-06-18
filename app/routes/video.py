@@ -224,18 +224,29 @@ def process_ai_video():
             try:
                 logger.info(f"正在处理视频文件: {video_file}")
                 
-                # 检查是否已存在于数据库，并且文件真实存在
-                relative_path = str(video_file.relative_to(current_app.config['BASE_DIR']))
+                # 构建目标视频路径
+                video_dir_path = current_app.config['VIDEO_DIR'] / video_file.name
+                target_relative_path = str(video_dir_path.relative_to(current_app.config['BASE_DIR']))
+                
+                # 检查是否已存在于数据库或目标位置已有文件
                 existing_video = db.session.query(Video).filter_by(
-                    file_path=relative_path,
+                    file_path=target_relative_path,
                     is_deleted=False
                 ).first()
                 
-                video_dir_path = current_app.config['VIDEO_DIR'] / video_file.name
-                
-                if existing_video and video_dir_path.exists():
-                    logger.info(f"视频已存在于数据库中且文件存在: {relative_path}")
-                    latest_video = existing_video  # 更新最新视频
+                # 如果视频已经在目标位置存在（无论是否在数据库中）
+                if video_dir_path.exists():
+                    logger.info(f"目标位置已存在视频文件: {video_dir_path}")
+                    # 删除AI_product中的源文件
+                    try:
+                        video_file.unlink()
+                        logger.info(f"已删除AI_product中的重复文件: {video_file}")
+                    except Exception as e:
+                        logger.warning(f"删除重复文件失败: {str(e)}")
+                    
+                    # 如果数据库中也有记录，使用现有记录
+                    if existing_video:
+                        latest_video = existing_video
                     continue
                 
                 # 获取视频信息
@@ -248,32 +259,36 @@ def process_ai_video():
                     logger.warning(f"获取视频时长失败（将使用默认值0）: {str(e)}")
                     duration = 0
                 
+                # 获取文件大小（在移动前获取）
+                file_size = video_file.stat().st_size
+                file_format = video_file.suffix[1:].lower()
+                file_stem = video_file.stem
+                
                 # 获取默认用户
                 default_user = db.session.query(User).first()
                 if not default_user:
                     logger.error("未找到用户，无法处理AI视频")
                     continue
                 
-                # 如果视频不在video目录中，复制过去
-                if not video_dir_path.exists():
-                    try:
-                        import shutil
-                        shutil.copy2(str(video_file), str(video_dir_path))
-                        logger.info(f"已复制视频文件到video目录: {video_dir_path}")
-                    except Exception as e:
-                        logger.error(f"复制视频文件失败: {str(e)}")
-                        continue
+                # 移动视频文件到video目录
+                try:
+                    import shutil
+                    shutil.move(str(video_file), str(video_dir_path))
+                    logger.info(f"已移动视频文件到video目录: {video_dir_path}")
+                except Exception as e:
+                    logger.error(f"移动视频文件失败: {str(e)}")
+                    continue
                 
-                # 创建视频记录
+                # 创建视频记录 - 强制使用原始文件名作为标题
                 video = Video(
-                    title=f"AI产品-{video_file.stem}",
-                    file_path=str(video_dir_path.relative_to(current_app.config['BASE_DIR'])),
-                    file_size=video_file.stat().st_size,
-                    format=video_file.suffix[1:].lower(),
+                    title=file_stem,  # 必须使用视频原本的名字，不可在中途变更名字
+                    file_path=target_relative_path,
+                    file_size=file_size,
+                    format=file_format,
                     user_id=default_user.id,
                     duration=duration,
                     status="processed",
-                    description="AI生成的视频产品"
+                    description=f"AI生成的视频：{file_stem}"  # 描述可以说明是AI生成，但标题必须是原名
                 )
                 
                 db.session.add(video)
