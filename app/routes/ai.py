@@ -24,6 +24,10 @@ pending_answers = []  # AI回答消息队列
 last_processed_time = datetime.now()  # 最后处理时间
 observer = None  # 观察者实例
 
+# Dify配置
+DIFY_BASE_URL = "http://127.0.0.1:5001/v1"
+DIFY_API_KEY = "app-Mej99iZQPjTGOtRIBfY76SEu"
+
 class AnswerFileHandler(FileSystemEventHandler):
     """监听answer文件夹的文件变化"""
     
@@ -212,4 +216,155 @@ def serve_ai_video(filename):
             
     except Exception as e:
         logger.error(f"提供AI视频文件失败: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/call-dify', methods=['POST'])
+def call_dify():
+    """调用Dify API发送用户提示词"""
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt', '').strip()
+        
+        if not prompt:
+            return jsonify({
+                'success': False,
+                'message': '提示词不能为空'
+            }), 400
+        
+        # 构建Dify API请求
+        dify_url = f"{DIFY_BASE_URL}/workflows/run"
+        headers = {
+            'Authorization': f'Bearer {DIFY_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            "inputs": {
+                "math_topic": prompt
+            },
+            "response_mode": "streaming",
+            "user": "abc-123"
+        }
+        
+        logger.info(f"🚀 准备调用Dify API")
+        logger.info(f"📍 请求URL: {dify_url}")
+        logger.info(f"📝 提示词: {prompt}")
+        logger.info(f"📦 请求payload: {payload}")
+        
+        # 发送请求到Dify
+        import requests
+        response = requests.post(dify_url, headers=headers, json=payload, timeout=60)
+        
+        # 详细记录响应信息
+        logger.info(f"📨 Dify响应状态码: {response.status_code}")
+        logger.info(f"📄 Dify响应头: {dict(response.headers)}")
+        
+        try:
+            response_data = response.json()
+            logger.info(f"📋 Dify响应内容: {response_data}")
+        except:
+            logger.info(f"📋 Dify响应内容(文本): {response.text[:500]}")
+        
+        if response.status_code == 200:
+            logger.info(f"✅ Dify调用成功！对方已收到消息")
+            return jsonify({
+                'success': True,
+                'message': 'Dify请求发送成功，对方已收到消息',
+                'prompt': prompt,
+                'status_code': response.status_code,
+                'response_preview': response.text[:200] + "..." if len(response.text) > 200 else response.text
+            })
+        else:
+            logger.error(f"❌ Dify调用失败: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'message': f'Dify调用失败: HTTP {response.status_code}',
+                'error_detail': response.text,
+                'status_code': response.status_code
+            }), 500
+            
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"🔌 连接Dify失败，请检查Dify服务是否运行: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': '无法连接到Dify服务，请检查Dify是否正在运行',
+            'error_type': 'connection_error'
+        }), 503
+        
+    except requests.exceptions.Timeout as e:
+        logger.error(f"⏰ Dify请求超时: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Dify响应超时，可能正在处理中',
+            'error_type': 'timeout'
+        }), 408
+        
+    except Exception as e:
+        logger.error(f"💥 调用Dify异常: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'调用失败: {str(e)}',
+            'error_type': 'unknown'
+        }), 500
+
+@bp.route('/test-dify', methods=['GET'])
+def test_dify():
+    """测试Dify连接状态"""
+    try:
+        import requests
+        
+        # 发送一个简单的测试请求
+        test_prompt = "测试连接"
+        dify_url = f"{DIFY_BASE_URL}/workflows/run"
+        headers = {
+            'Authorization': f'Bearer {DIFY_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            "inputs": {
+                "math_topic": test_prompt
+            },
+            "response_mode": "streaming",
+            "user": "test-user"
+        }
+        
+        logger.info(f"🧪 测试Dify连接...")
+        logger.info(f"📍 URL: {dify_url}")
+        
+        response = requests.post(dify_url, headers=headers, json=payload, timeout=10)
+        
+        logger.info(f"📨 测试响应状态: {response.status_code}")
+        logger.info(f"📋 测试响应内容: {response.text[:200]}")
+        
+        if response.status_code == 200:
+            return jsonify({
+                'success': True,
+                'message': '✅ Dify连接正常，对方可以收到消息',
+                'status_code': response.status_code,
+                'dify_url': dify_url,
+                'response_preview': response.text[:100]
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'❌ Dify响应异常: HTTP {response.status_code}',
+                'status_code': response.status_code,
+                'error_detail': response.text,
+                'dify_url': dify_url
+            })
+            
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            'success': False,
+            'message': '🔌 无法连接到Dify，请检查服务是否运行',
+            'dify_url': f"{DIFY_BASE_URL}/workflows/run",
+            'suggestion': '请确认Dify在 http://127.0.0.1:5001 运行'
+        }), 503
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'测试失败: {str(e)}',
+            'dify_url': f"{DIFY_BASE_URL}/workflows/run"
+        }), 500 

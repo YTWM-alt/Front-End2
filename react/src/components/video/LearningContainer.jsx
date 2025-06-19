@@ -4,7 +4,7 @@ import VideoInfo from './VideoInfo';
 import AIAssistant from '../chat/AIAssistant';
 import { useChat } from '../../hooks/useChat';
 import { SAMPLE_VIDEO } from '../../utils/constants';
-import { processAIVideo } from '../../utils/api';
+import { processAIVideo, callDify } from '../../utils/api';
 
 // 全局处理状态，防止重复执行
 let globalProcessingState = {
@@ -76,7 +76,7 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
   /**
    * 开始监听AI视频生成（持续5分钟）
    */
-  const startVideoMonitoring = () => {
+  const startVideoMonitoring = async () => {
     if (hasProcessed || isProcessingVideo) {
       console.log('🚫 AI视频处理已执行过或正在处理中，跳过重复调用');
       return;
@@ -98,7 +98,34 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
     
     console.log('🎯 开始5分钟AI视频监听');
     
-    // 立即检查一次
+    // 首先调用Dify发送提示词
+    if (searchTerm) {
+      console.log('🚀 正在调用Dify发送提示词:', searchTerm);
+      try {
+        const difyResult = await callDify(searchTerm);
+        
+        if (difyResult.success) {
+          console.log('✅ Dify调用成功:', difyResult.message);
+          console.log('📨 Dify响应详情:', difyResult);
+        } else {
+          console.error('❌ Dify调用失败:', difyResult.message);
+          console.error('🔍 错误详情:', difyResult);
+          
+          // 显示用户友好的错误信息
+          if (difyResult.error?.error_type === 'connection_error') {
+            console.warn('⚠️ 无法连接到Dify服务，请检查Dify是否正在运行');
+          } else if (difyResult.error?.error_type === 'timeout') {
+            console.warn('⚠️ Dify响应超时，可能正在处理中...');
+          }
+        }
+      } catch (error) {
+        console.error('💥 调用Dify异常:', error);
+      }
+    } else {
+      console.log('⚠️ 没有提示词，跳过Dify调用');
+    }
+    
+    // 立即检查一次是否已有视频
     checkForAIVideo();
     
     // 设置定时检查（每10秒检查一次）
@@ -188,11 +215,62 @@ const LearningContainer = ({ searchTerm, onClose, authHook }) => {
   };
 
   /**
-   * 处理AI生成的视频（只允许执行一次） - 已被新的监听机制替代
+   * 处理AI生成的视频
    */
   const handleProcessAIVideo = async () => {
-    // 这个函数已被 startVideoMonitoring 替代
-    console.warn('⚠️ handleProcessAIVideo 已被新的监听机制替代');
+    setIsProcessingVideo(true);
+    
+    try {
+      // 首先调用Dify发送提示词
+      if (searchTerm) {
+        console.log('🚀 正在调用Dify发送提示词:', searchTerm);
+        const difyResult = await callDify(searchTerm);
+        
+        if (difyResult.success) {
+          console.log('✅ Dify调用成功:', difyResult.message);
+          console.log('📨 Dify响应详情:', difyResult);
+        } else {
+          console.error('❌ Dify调用失败:', difyResult.message);
+          console.error('🔍 错误详情:', difyResult);
+          
+          // 显示用户友好的错误信息
+          if (difyResult.error?.error_type === 'connection_error') {
+            console.warn('⚠️ 无法连接到Dify服务，请检查Dify是否正在运行');
+          } else if (difyResult.error?.error_type === 'timeout') {
+            console.warn('⚠️ Dify响应超时，可能正在处理中...');
+          }
+        }
+      } else {
+        console.log('⚠️ 没有提示词，跳过Dify调用');
+      }
+      
+      // 继续执行原有的AI视频处理逻辑
+      const result = await processAIVideo();
+      
+      if (result.success) {
+        // 构建完整的视频URL
+        const fullVideoUrl = `http://localhost:3003${result.videoUrl}`;
+        
+        // 更新视频数据
+        setVideoData(prev => ({
+          ...prev,
+          source: fullVideoUrl,
+          title: searchTerm ? `${searchTerm} - AI生成视频` : 'AI生成视频',
+          description: searchTerm 
+            ? `关于"${searchTerm}"的AI生成视频内容。该视频基于您的搜索关键词自动生成，为您提供个性化的学习体验。`
+            : 'AI为您生成的个性化学习视频。',
+          thumbnail: "https://cdn.pixabay.com/photo/2017/01/25/17/35/background-2008590_1280.jpg"
+        }));
+        
+        console.log('✅ AI视频处理成功:', result);
+      } else {
+        console.log('ℹ️ 没有找到AI视频文件，使用默认视频');
+      }
+    } catch (error) {
+      console.error('❌ 处理AI视频异常:', error);
+    } finally {
+      setIsProcessingVideo(false);
+    }
   };
 
   /**

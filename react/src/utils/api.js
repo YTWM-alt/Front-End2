@@ -414,4 +414,30 @@ function getDurationCategory(duration) {
   if (duration < 900) return 'long'; // 5-15分钟
   return 'xlong'; // 15分钟以上
 }
+
+/**
+ * 调用Dify API发送提示词
+ * @param {string} prompt - 用户输入的提示词
+ * @returns {Promise<Object>} 调用结果
+ */
+export const callDify = async (prompt) => {
+  try {
+    const result = await fetchAPI('/ai/call-dify', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+    });
+
+    return {
+      success: true,
+      message: result.message,
+      prompt: result.prompt
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || '调用Dify失败',
+      error: error
+    };
+  }
+};
  
